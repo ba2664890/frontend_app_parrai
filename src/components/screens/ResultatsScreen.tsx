@@ -5,6 +5,7 @@
 // avec un compte à rebours géant, puis révélation totale + confettis.
 // Carte Famille à la fin quand les 2 parrains sont révélés.
 import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { useAppStore } from "@/store/useAppStore";
 import { spawnConfetti, spawnConfettiIn } from "@/components/shared/Confetti";
 import { StageBackground } from "@/components/shared/StageBackground";
@@ -404,6 +405,40 @@ function ParrainReveal({
 // Carte Famille — affichée quand les 2 parrains sont révélés.
 // ------------------------------------------------------------------
 function FamilyCard({ tirage }: { tirage: TirageResult }) {
+  const [qrCode, setQrCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    const contactLine = (label: string, etudiant: Etudiant) => [
+      `${label}: ${nomComplet(etudiant)}`,
+      etudiant.telephone ? `Téléphone: ${etudiant.telephone}` : null,
+      etudiant.email ? `Email: ${etudiant.email}` : null,
+    ].filter(Boolean).join("\n");
+
+    const familyDetails = [
+      "AMSEN — FAMILLE DE PARRAINAGE",
+      contactLine("Filleul", tirage.filleul),
+      `Filière: ${tirage.filleul.filiereCode} · Niveau 1`,
+      "",
+      contactLine("Parrain 2e année", tirage.parrain2),
+      "",
+      contactLine("Parrain 3e année", tirage.parrain3),
+    ].join("\n");
+
+    let cancelled = false;
+    QRCode.toDataURL(familyDetails, {
+      errorCorrectionLevel: "M",
+      margin: 2,
+      width: 320,
+      color: { dark: "#1a1a1a", light: "#ffffff" },
+    }).then((dataUrl) => {
+      if (!cancelled) setQrCode(dataUrl);
+    }).catch(() => {
+      if (!cancelled) setQrCode(null);
+    });
+
+    return () => { cancelled = true; };
+  }, [tirage]);
+
   return (
     <div className="w-full bg-surface-container-lowest rounded-3xl p-space-md shadow-xl animate-[float-slow_0.6s_ease-out]">
       <div className="flex items-center justify-between mb-space-sm">
@@ -466,16 +501,16 @@ function FamilyCard({ tirage }: { tirage: TirageResult }) {
         {/* QR code */}
         <div className="flex flex-col items-center text-center">
           <div className="w-24 h-24 bg-blanc-pure rounded-xl shadow-md p-1.5 flex items-center justify-center">
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=AMSEN-${tirage.filleul.id}-${tirage.parrain2.id}-${tirage.parrain3.id}`}
-              alt="QR code fiche de parrainage"
-              className="w-full h-full"
-            />
+            {qrCode ? (
+              <img src={qrCode} alt="QR code des coordonnées du filleul et de ses parrains" className="w-full h-full" />
+            ) : (
+              <span className="font-label-md text-label-md text-outline">QR…</span>
+            )}
           </div>
           <span className="mt-2 font-label-md text-label-md text-on-surface-variant">
             Fiche de parrainage
           </span>
-          <span className="font-label-md text-label-md text-outline">Scanner pour les contacts</span>
+          <span className="font-label-md text-label-md text-outline">Scanner pour voir les coordonnées</span>
         </div>
       </div>
     </div>

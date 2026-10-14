@@ -3,7 +3,7 @@ export function StageFooter() {
     <footer className="w-full bg-blanc-pure py-space-sm mt-auto">
       <div className="w-full px-space-lg flex items-center justify-between text-on-surface-variant">
         <span className="font-label-md text-label-md hidden sm:inline">
-          Amicale des Sénégalais de l&apos;ENSAE Dakar © 2025
+          Amicale des Sénégalais de l&apos;ENSAE Dakar © 2026
         </span>
         <div className="flex items-center gap-space-sm font-label-md text-label-md">
           <span className="text-filiere-as font-bold">AS</span>

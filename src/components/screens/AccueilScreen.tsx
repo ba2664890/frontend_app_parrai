@@ -108,7 +108,7 @@ export function AccueilScreen() {
           <div className="flex items-center gap-space-sm bg-surface-container-low/90 backdrop-blur-md px-space-md py-space-xs rounded-full shadow-sm">
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-vert-teranga animate-ping" />
             <span className="font-label-md text-label-md text-encre-text uppercase tracking-widest font-bold">
-              Cérémonie Officielle ENSAE
+              Cérémonie Officielle AMSEN
             </span>
             <span className="hidden sm:inline font-body-md text-outline">|</span>
             <span className="inline-flex items-center gap-2 rounded-full border border-vert-teranga/20 bg-vert-teranga/10 px-3 py-1.5 text-vert-teranga shadow-sm ring-1 ring-white/70">

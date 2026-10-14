@@ -1,7 +1,7 @@
 // Client API — appels fetch vers Django REST API /api/*
 import type { StatsGlobales, TirageResult, Etudiant, AuditEntry, Parrainage } from "./types";
 
-const BASE = "/api";
+const BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {

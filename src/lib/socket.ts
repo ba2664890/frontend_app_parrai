@@ -8,9 +8,13 @@ type Listener = (data: unknown) => void;
 const listeners = new Map<string, Set<Listener>>();
 
 function getWsUrl(): string {
+  const configuredUrl = import.meta.env.VITE_WS_URL;
+  if (configuredUrl) return configuredUrl;
+
   const hostname = window.location.hostname;
   const port = import.meta.env.VITE_WS_PORT ?? "8000";
-  return `ws://${hostname}:${port}/ws/`;
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${hostname}:${port}/ws/`;
 }
 
 function connect() {

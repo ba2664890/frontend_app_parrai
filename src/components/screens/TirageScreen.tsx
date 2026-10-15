@@ -9,7 +9,7 @@ import { spawnConfetti } from "@/components/shared/Confetti";
 import { StageBackground } from "@/components/shared/StageBackground";
 import { ModeRevealOverlay } from "@/components/shared/ModeRevealOverlay";
 import { AmsenLogo } from "@/components/shared/AmsenLogo";
-import { FILIERE_COULEUR, FILIERE_LIBELLE, initiales, nomComplet, type Etudiant, type TirageResult } from "@/lib/types";
+import { FILIERE_COULEUR, FILIERE_LIBELLE, codeFiliereAffiche, initiales, nomComplet, type Etudiant, type TirageResult } from "@/lib/types";
 
 const DRAW_ANIMATION_DURATION_MS = 3000;
 
@@ -318,7 +318,7 @@ export function TirageScreen() {
             style={{ background: filiereColor, color: currentNouveau.filiereCode === "ISE_ECO" ? "#1a1a1a" : "#fff" }}
           >
             <span className="w-3 h-3 rounded-full" style={{ background: currentNouveau.filiereCode === "ISE_ECO" ? "#1a1a1a" : "#fff" }} />
-            <span>{currentNouveau.filiereCode}_1</span>
+            <span>{codeFiliereAffiche(currentNouveau.filiereCode)}_1</span>
           </div>
 
           {/* Nom géant */}

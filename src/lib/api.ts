@@ -144,7 +144,7 @@ export const api = {
     return json(await fetch(`${BASE}/audit/`));
   },
 
-  async importCsv(csv: string): Promise<{ ok: boolean; count: number }> {
+  async importCsv(csv: string): Promise<{ ok: boolean; count: number; skipped_existing: number }> {
     return json(
       await fetch(`${BASE}/import/`, {
         method: "POST",

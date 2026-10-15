@@ -12,6 +12,7 @@ import { StageBackground } from "@/components/shared/StageBackground";
 import { AmsenStar } from "@/components/shared/AmsenLogo";
 import {
   FILIERE_COULEUR,
+  codeFiliereAffiche,
   initiales,
   nomComplet,
   type Etudiant,
@@ -104,7 +105,7 @@ export function ResultatsScreen() {
                   color: parrain.filiereCode === "ISE_ECO" ? "#1a1a1a" : "#fff",
                 }}
               >
-                {parrain.filiereCode} 1
+                {codeFiliereAffiche(parrain.filiereCode)} 1
               </span>
             </div>
           </div>
@@ -257,7 +258,7 @@ function ParrainReveal({
               {yearLabel}
             </span>
             <span className="px-space-md py-space-xs rounded-full bg-encre-text text-blanc-pure font-label-lg text-label-lg font-bold">
-              {parrain.filiereCode}_{niveau}
+              {codeFiliereAffiche(parrain.filiereCode)}_{niveau}
             </span>
           </div>
           <div className="flex items-center gap-space-sm bg-surface-container-low px-space-md py-space-xs rounded-full">
@@ -417,7 +418,7 @@ function FamilyCard({ tirage }: { tirage: TirageResult }) {
     const familyDetails = [
       "AMSEN — FAMILLE DE PARRAINAGE",
       contactLine("Filleul", tirage.filleul),
-      `Filière: ${tirage.filleul.filiereCode} · Niveau 1`,
+      `Filière: ${codeFiliereAffiche(tirage.filleul.filiereCode)} · Niveau 1`,
       "",
       contactLine("Parrain 2e année", tirage.parrain2),
       "",
@@ -467,7 +468,7 @@ function FamilyCard({ tirage }: { tirage: TirageResult }) {
             {nomComplet(tirage.filleul)}
           </span>
           <span className="font-label-md text-label-md text-on-surface-variant">
-            Filleul · {tirage.filleul.filiereCode} 1
+            Filleul · {codeFiliereAffiche(tirage.filleul.filiereCode)} 1
           </span>
         </div>
         {/* Parrain 2 */}

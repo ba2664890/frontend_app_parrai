@@ -11,7 +11,6 @@ import { AmsenLogo } from "@/components/shared/AmsenLogo";
 import {
   FILIERE_COULEUR,
   FILIERE_LIBELLE,
-  codeFiliereAffiche,
   initiales,
   nomComplet,
   type StatsFiliere,
@@ -44,17 +43,16 @@ export function PiloteScreen() {
   const [eventName, setEventName] = useState(`Cérémonie de parrainage ${new Date().getFullYear()}`);
   const [selectedFiliere, setSelectedFiliere] = useState<string | null>(stats?.filiereActive ?? null);
   const filieres = stats?.filieres ?? [];
-  const filieresEnJeu = filieres.filter((f) => f.totalNouveaux > 0);
 
   useEffect(() => {
     if (stats?.filiereActive) {
       setSelectedFiliere(stats.filiereActive);
       return;
     }
-    if (!selectedFiliere && filieresEnJeu.length > 0) {
-      setSelectedFiliere(filieresEnJeu[0].code);
+    if (!selectedFiliere && filieres.length > 0) {
+      setSelectedFiliere(filieres[0].code);
     }
-  }, [stats?.filiereActive, filieresEnJeu, selectedFiliere]);
+  }, [stats?.filiereActive, filieres, selectedFiliere]);
 
   const { data: binomes = [] } = useQuery({
     queryKey: ["binomes"],
@@ -166,7 +164,7 @@ export function PiloteScreen() {
   };
 
   const handleProchain = async () => {
-    const targetFiliere = selectedFiliere ?? filieresEnJeu[0]?.code ?? null;
+    const targetFiliere = selectedFiliere ?? filieres[0]?.code ?? null;
     if (!targetFiliere) {
       toast({ title: "Aucune filière disponible", variant: "destructive" });
       return;
@@ -205,11 +203,7 @@ export function PiloteScreen() {
     setBusy(true);
     try {
       const r = await api.importCsv(csv);
-      const skipped = r.skipped_existing ?? 0;
-      toast({
-        title: "Import terminé",
-        description: `${r.count} étudiants ajoutés${skipped ? ` · ${skipped} déjà présents ignorés` : ""}`,
-      });
+      toast({ title: "Import réussi", description: `${r.count} étudiants importés` });
       setCsv("");
       await refresh();
     } catch (e) {
@@ -388,18 +382,18 @@ export function PiloteScreen() {
             <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-md flex flex-col gap-space-md">
               <div className="flex items-center justify-between">
                 <span className="font-headline text-headline-sm font-bold text-on-surface">Filières en jeu</span>
-                <span className="font-label-md text-label-md text-outline">{filieresEnJeu.length} filières en jeu</span>
+                <span className="font-label-md text-label-md text-outline">{filieres.length} filières</span>
               </div>
               <p className="font-label-md text-label-md text-on-surface-variant">
                 Suivi de l&apos;ordre défini par la filière active.
               </p>
               <div className="flex flex-col gap-space-xs">
-                {filieresEnJeu.length === 0 && (
+                {filieres.length === 0 && (
                   <div className="text-on-surface-variant font-label-md text-label-md p-space-sm">
                     {hasEvent ? "Aucune filière importée. Importez un CSV avec le code de filière de chaque étudiant." : "Les filières apparaîtront après l’import du fichier CSV."}
                   </div>
                 )}
-                {filieresEnJeu.map((f) => (
+                {filieres.map((f) => (
                   <FiliereTrack
                     key={f.code}
                     f={f}
@@ -520,7 +514,7 @@ export function PiloteScreen() {
                           {nomComplet(b.filleul)}
                         </div>
                         <div className="font-label-md text-label-md text-on-surface-variant truncate">
-                          → {initiales(b.parrain.prenom, b.parrain.nom)} ({b.niveau}A) · {codeFiliereAffiche(b.filleul.filiereCode)}
+                          → {initiales(b.parrain.prenom, b.parrain.nom)} ({b.niveau}A) · {b.filleul.filiereCode}
                         </div>
                       </div>
                       <span className="font-label-md text-label-md text-outline shrink-0">
@@ -634,7 +628,7 @@ function FiliereTrack({
         <span className="w-4 h-10 rounded-full transition-transform group-hover:scale-110" style={{ background: color }} />
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-headline text-headline-sm text-on-surface font-black">{codeFiliereAffiche(f.code)}</span>
+            <span className="font-headline text-headline-sm text-on-surface font-black">{f.code}</span>
             {active && <span className="w-2 h-2 rounded-full bg-vert-teranga animate-pulse" />}
           </div>
           <div className="font-label-md text-label-md text-on-surface-variant font-medium">

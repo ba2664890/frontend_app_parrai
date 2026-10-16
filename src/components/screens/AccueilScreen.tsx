@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { StageBackground } from "@/components/shared/StageBackground";
 import { AmsenLogo, AmsenStar } from "@/components/shared/AmsenLogo";
 import { FinishedModal } from "@/components/shared/FinishedModal";
-import { FILIERE_COULEUR, FILIERE_LIBELLE, codeFiliereAffiche, initiales, nomComplet, type Etudiant, type StatsFiliere, type TirageResult } from "@/lib/types";
+import { FILIERE_COULEUR, FILIERE_LIBELLE, initiales, nomComplet, type Etudiant, type StatsFiliere, type TirageResult } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 const SLOGANS = [
@@ -248,8 +248,8 @@ export function AccueilScreen() {
         {/* Bandeau inférieur — 4 anneaux de progression + ticker */}
         <div className="w-full flex flex-col gap-space-sm pt-space-xs">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-gutter bg-surface-container-low/80 backdrop-blur-md rounded-2xl p-space-md shadow-sm">
-            {filieres.filter((f) => f.totalNouveaux > 0).length > 0
-              ? filieres.filter((f) => f.totalNouveaux > 0).map((f) => <FiliereRing key={f.code} f={f} />)
+            {filieres.length > 0
+              ? filieres.map((f) => <FiliereRing key={f.code} f={f} />)
               : [0, 1, 2, 3].map((i) => <FiliereRingSkeleton key={i} />)}
           </div>
         </div>
@@ -358,7 +358,7 @@ function FiliereRing({ f }: { f: StatsFiliere }) {
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
           <span className="font-headline text-headline-sm leading-none text-encre-text font-extrabold truncate">
-            {codeFiliereAffiche(f.code)}
+            {f.code}
           </span>
         </div>
         <span className="font-label-md text-label-md text-on-surface-variant mt-1 truncate">

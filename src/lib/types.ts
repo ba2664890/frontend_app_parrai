@@ -74,8 +74,6 @@ export interface AuditEntry {
 
 export const FILIERE_COULEUR: Record<string, string> = {
   AS: "#1F7A3A",
-  ISE: "#FFD800",
-  ISE3_eco: "#FFD800",
   ISE_ECO: "#FFD800",
   ISE_MATH: "#C62F24",
   ISEP: "#1F7A3A",
@@ -83,16 +81,10 @@ export const FILIERE_COULEUR: Record<string, string> = {
 
 export const FILIERE_LIBELLE: Record<string, string> = {
   AS: "Analyste statisticien",
-  ISE: "Ingénieur statisticien économiste — classe commune",
-  ISE3_eco: "ISE3",
   ISE_ECO: "Ingénieur statisticien économiste",
   ISE_MATH: "Ingénieur statisticien économiste",
   ISEP: "Cycle Ingénieurs",
 };
-
-export function codeFiliereAffiche(code: string): string {
-  return code === "ISE3_eco" ? "ISE3" : code;
-}
 
 export function initiales(prenom: string, nom: string): string {
   return `${prenom.trim().charAt(0).toUpperCase()}. ${nom.trim().charAt(0).toUpperCase()}.`;

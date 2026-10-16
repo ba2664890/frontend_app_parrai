@@ -38,7 +38,11 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   view: "accueil",
-  setView: (v) => set({ view: v }),
+  setView: (v) =>
+    set((state) => ({
+      view: v,
+      ...(v !== "tirage" && state.drawAnimation ? { drawAnimation: null } : {}),
+    })),
 
   evenementId: null,
   filiereActive: "AS",

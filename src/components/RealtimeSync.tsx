@@ -69,8 +69,13 @@ export function RealtimeSync() {
       }),
       on("tirage:execute", (data) => {
         const { tirage } = data as { tirage: TirageResult };
+        const state = useAppStore.getState();
         setCurrentTirage(tirage);
-        setView("resultats");
+        // Le client qui a lancé le tirage doit d'abord terminer son animation
+        // locale. Les autres clients passent directement à l'écran résultats.
+        if (state.currentNouveau?.id !== tirage.filleul.id) {
+          setView("resultats");
+        }
       }),
     ];
 

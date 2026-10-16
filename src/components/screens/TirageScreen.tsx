@@ -221,50 +221,6 @@ export function TirageScreen() {
     <div className="relative flex flex-col w-full overflow-hidden min-h-[calc(100vh-5rem-3.5rem)]">
       <StageBackground variant="festive" />
 
-      {drawingResult && (
-        <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center gap-6 bg-encre-text/90 p-space-md text-center backdrop-blur-md" role="status" aria-live="polite">
-          <div>
-            <span className="font-label-lg text-label-lg font-bold uppercase tracking-[0.3em] text-jaune-soleil">
-              Révélation du binôme
-            </span>
-            <h2 className="mt-2 font-headline text-headline-xl font-black uppercase text-white">
-              Les parrains se révèlent
-            </h2>
-          </div>
-
-          <div className="relative isolate grid h-[min(62vh,620px)] w-[min(92vw,980px)] grid-cols-2 gap-3 overflow-hidden rounded-3xl border-2 border-jaune-soleil/70 bg-surface-container shadow-2xl">
-            {[drawingResult.parrain2, drawingResult.parrain3].map((parrain, index) => (
-              <div key={parrain.id} className="relative flex min-w-0 flex-col overflow-hidden bg-surface-container-high">
-                {parrain.photo ? (
-                  <img src={parrain.photo} alt="" className="h-full min-h-0 w-full flex-1 object-cover object-center" />
-                ) : (
-                  <div className="flex h-full min-h-0 flex-1 items-center justify-center font-headline text-6xl font-black text-vert-teranga">
-                    {initiales(parrain.prenom, parrain.nom)}
-                  </div>
-                )}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-3 pb-4 pt-14 text-white">
-                  <span className="block font-label-md text-label-md font-bold uppercase tracking-widest text-jaune-soleil">
-                    Parrain · {index === 0 ? "2e année" : "3e année"}
-                  </span>
-                  <span className="mt-1 block truncate font-headline text-headline-sm font-black uppercase">
-                    {drawProgress >= 0.88 ? nomComplet(parrain) : initiales(parrain.prenom, parrain.nom)}
-                  </span>
-                </div>
-              </div>
-            ))}
-            <ModeRevealOverlay mode={REVEAL_MODE} progress={drawProgress} />
-          </div>
-
-          <div className="w-[min(80vw,480px)]">
-            <div className="h-2 overflow-hidden rounded-full bg-white/20">
-              <div className="h-full rounded-full bg-jaune-soleil transition-[width] duration-75" style={{ width: `${Math.round(drawProgress * 100)}%` }} />
-            </div>
-            <p className="mt-2 font-label-md text-label-md font-semibold text-white/80">
-              {Math.max(0, Math.ceil((DRAW_ANIMATION_DURATION_MS / 1000) * (1 - drawProgress)))} s
-            </p>
-          </div>
-        </div>
-      )}
 
       <div className="relative z-10 w-full max-w-7xl mx-auto px-margin py-space-md flex flex-col justify-between items-center flex-1">
         {/* Barre supérieure */}
@@ -374,7 +330,6 @@ export function TirageScreen() {
           {error && (
             <p className="mt-space-sm font-label-md text-label-md text-rouge-laterite font-semibold">{error}</p>
           )}
-
 
         </div>
 

@@ -32,9 +32,9 @@ function AppInner() {
   return (
     <>
       <RealtimeSync />
-      <div className={"min-h-screen flex flex-col " + (isCeremonyScene ? "bg-[#050716]" : "bg-blanc-pure")}>
+      <div className="min-h-screen flex flex-col bg-blanc-pure">
         {!isCeremonyScene && <StageHeader />}
-        <main className={"w-full flex-1 " + (isCeremonyScene ? "bg-[#050716]" : "pt-20 bg-blanc-pure")}>
+        <main className={"w-full flex-1 " + (isCeremonyScene ? "bg-surface" : "pt-20 bg-blanc-pure")}>
           <Screens />
         </main>
         {!isCeremonyScene && <StageFooter />}

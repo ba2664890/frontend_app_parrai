@@ -33,7 +33,7 @@ function SilentPortraitCard({
 }) {
   return (
     <group position={position}>
-      <Html transform sprite distanceFactor={16} zIndexRange={[0, 0]}>
+      <Html transform sprite distanceFactor={10.5} zIndexRange={[0, 0]}>
         <div
           className="sphere-photo-card"
           style={{ borderColor: tone, opacity: dimmed ? 0.12 : 1, boxShadow: `0 0 18px ${tone}88` }}
@@ -42,7 +42,7 @@ function SilentPortraitCard({
           {portrait.photo ? (
             <img src={portrait.photo} alt="" draggable={false} />
           ) : (
-            <div className="sphere-photo-fallback" style={{ background: `radial-gradient(circle at 30% 20%, ${tone}, #0a1028 72%)` }}>
+            <div className="sphere-photo-fallback" style={{ background: `radial-gradient(circle at 30% 20%, ${tone}99, #f0eded 72%)` }}>
               <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="34" r="17" fill="rgba(255,255,255,.92)" /><path d="M18 89c4-24 18-34 32-34s28 10 32 34" fill="rgba(255,255,255,.92)" /></svg>
             </div>
           )}
@@ -76,9 +76,9 @@ function WinnerPortrait({ winner, tone, side }: { winner: Etudiant; tone: string
         <circleGeometry args={[1.55, 48]} />
         <meshBasicMaterial color={tone} transparent opacity={0.35} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
-      <Html transform sprite distanceFactor={14} zIndexRange={[2, 2]}>
+      <Html transform sprite distanceFactor={10.5} zIndexRange={[2, 2]}>
         <div className="sphere-winner-card" style={{ borderColor: tone, boxShadow: `0 0 46px ${tone}, inset 0 0 18px ${tone}66` }} aria-label="Parrain sélectionné">
-          {winner.photo ? <img src={winner.photo} alt="" draggable={false} /> : <div className="sphere-photo-fallback" style={{ background: `radial-gradient(circle at 30% 20%, ${tone}, #080b20 72%)` }}><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="34" r="17" fill="rgba(255,255,255,.92)" /><path d="M18 89c4-24 18-34 32-34s28 10 32 34" fill="rgba(255,255,255,.92)" /></svg></div>}
+          {winner.photo ? <img src={winner.photo} alt="" draggable={false} /> : <div className="sphere-photo-fallback" style={{ background: `radial-gradient(circle at 30% 20%, ${tone}99, #f0eded 72%)` }}><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="34" r="17" fill="rgba(255,255,255,.92)" /><path d="M18 89c4-24 18-34 32-34s28 10 32 34" fill="rgba(255,255,255,.92)" /></svg></div>}
         </div>
       </Html>
     </group>
@@ -101,9 +101,9 @@ function MentorSphere({
   const orbit = useRef<THREE.Group>(null);
   const shell = useRef<THREE.Mesh>(null);
   const speed = useRef(0.1);
-  const tone = level === 2 ? "#57e68a" : "#b68cff";
+  const tone = level === 2 ? "#1F7A3A" : "#C62F24";
   const cards = portraits.length ? portraits : winner ? [winner] : [];
-  const points = useMemo(() => fibonacciSphere(cards.length, 2.65), [cards.length]);
+  const points = useMemo(() => fibonacciSphere(cards.length, 1.85), [cards.length]);
 
   useFrame(({ clock }, delta) => {
     const targetSpeed = phase === "rolling" ? 5.4 : phase === "settling" ? 0.18 : phase === "revealing" || phase === "complete" ? 0.025 : 0.12;
@@ -123,10 +123,10 @@ function MentorSphere({
     <group position={position}>
       <pointLight color={tone} intensity={phase === "rolling" ? 24 : 8} distance={8} />
       <mesh ref={shell}>
-        <sphereGeometry args={[2.84, 36, 36]} />
+        <sphereGeometry args={[2.02, 36, 36]} />
         <meshPhysicalMaterial color={tone} transparent opacity={0.1} roughness={0.22} metalness={0.7} wireframe />
       </mesh>
-      <Sparkles count={phase === "rolling" ? 115 : 46} scale={6.7} size={phase === "rolling" ? 4 : 2} speed={phase === "rolling" ? 2.8 : 0.35} color={tone} />
+      <Sparkles count={phase === "rolling" ? 90 : 34} scale={4.9} size={phase === "rolling" ? 3 : 1.6} speed={phase === "rolling" ? 2.4 : 0.3} color={tone} />
       <group ref={orbit}>
         {cards.map((portrait, index) => <SilentPortraitCard key={portrait.id} portrait={portrait} position={points[index]} tone={tone} dimmed={Boolean(winner && (phase === "revealing" || phase === "complete"))} />)}
       </group>
@@ -148,15 +148,15 @@ function SphereScene({ portraits, winner2, winner3, phase }: { portraits: Portra
   const level3 = portraits.filter((portrait) => portrait.niveau === 3);
   return (
     <>
-      <color attach="background" args={["#050716"]} />
-      <fog attach="fog" args={["#050716", 9, 20]} />
-      <ambientLight intensity={1.15} />
-      <directionalLight position={[4, 5, 6]} color="#b9d5ff" intensity={3.2} />
-      <directionalLight position={[-5, -3, 4]} color="#8d65ff" intensity={2.5} />
-      <Stars radius={28} depth={16} count={900} factor={3} saturation={0} fade speed={phase === "rolling" ? 2.4 : 0.4} />
-      <Sparkles count={160} scale={[15, 9, 4]} size={2.2} speed={phase === "rolling" ? 2 : 0.4} color="#9f8cff" />
-      <MentorSphere portraits={level2} winner={winner2} level={2} phase={phase} position={[-3.35, 0, 0]} />
-      <MentorSphere portraits={level3} winner={winner3} level={3} phase={phase} position={[3.35, 0, 0]} />
+      <color attach="background" args={["#FCF9F8"]} />
+      <fog attach="fog" args={["#FCF9F8", 8, 18]} />
+      <ambientLight intensity={1.8} />
+      <directionalLight position={[4, 5, 6]} color="#FFFFFF" intensity={3.2} />
+      <directionalLight position={[-5, -3, 4]} color="#FFD800" intensity={1.8} />
+      <Stars radius={28} depth={16} count={260} factor={2} saturation={0} fade speed={phase === "rolling" ? 1.5 : 0.25} />
+      <Sparkles count={90} scale={[13, 8, 4]} size={1.6} speed={phase === "rolling" ? 1.8 : 0.25} color="#FFD800" />
+      <MentorSphere portraits={level2} winner={winner2} level={2} phase={phase} position={[-2.55, 0, 0]} />
+      <MentorSphere portraits={level3} winner={winner3} level={3} phase={phase} position={[2.55, 0, 0]} />
       <CameraMotion phase={phase} />
       <OrbitControls enablePan={false} enableDamping dampingFactor={0.06} minDistance={7} maxDistance={15} />
     </>

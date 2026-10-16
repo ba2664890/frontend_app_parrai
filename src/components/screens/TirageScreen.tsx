@@ -376,6 +376,7 @@ export function TirageScreen() {
           )}
 
 
+        </div>
 
         {/* Barre de contrôle animateur */}
         <div className="w-full pt-space-xs flex flex-wrap items-center justify-between gap-space-sm">

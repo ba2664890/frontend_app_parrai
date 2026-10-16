@@ -109,24 +109,75 @@
   50% { transform: translateY(-12px); }
 }
 
-.photo-lottery-window {
-  --photo-lottery-card-width: clamp(11.5rem, 22vw, 16.5rem);
+/* Scène de cérémonie 3D : aucun libellé visible, uniquement les objets animés. */
+.draw-sphere-screen {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 48%, rgb(47 56 143 / 32%), transparent 36%),
+    radial-gradient(circle at 12% 14%, rgb(47 91 255 / 22%), transparent 34%),
+    radial-gradient(circle at 88% 82%, rgb(132 65 255 / 20%), transparent 38%),
+    #050716;
 }
-.photo-lottery-roll-track,
-.photo-lottery-finish-track {
+.draw-sphere-screen::before,
+.draw-sphere-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.draw-sphere-screen::before {
+  background: repeating-linear-gradient(90deg, transparent 0 3px, rgb(255 255 255 / 1.5%) 3px 4px);
+  mix-blend-mode: screen;
+  opacity: .45;
+}
+.draw-sphere-screen::after {
+  background: radial-gradient(circle at center, transparent 42%, rgb(0 0 0 / 42%) 100%);
+}
+.sphere-photo-card {
+  width: 58px;
+  height: 72px;
+  overflow: hidden;
+  border: 1.5px solid;
+  border-radius: 11px;
+  background: #080b20;
+  transform: translate(-50%, -50%);
+  backdrop-filter: blur(4px);
+  transition: opacity 700ms ease, filter 700ms ease;
+}
+.sphere-photo-card img,
+.sphere-winner-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sphere-photo-fallback { width: 100%; height: 100%; display: grid; place-items: center; }
+.sphere-photo-fallback svg { width: 62%; height: 62%; filter: drop-shadow(0 0 8px rgb(255 255 255 / 42%)); }
+.sphere-winner-card {
+  width: min(25vw, 220px);
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border: 3px solid;
+  border-radius: 22px;
+  background: #080b20;
+  transform: translate(-50%, -50%);
+}
+.sphere-icon-control {
   display: grid;
-  grid-auto-columns: var(--photo-lottery-card-width);
-  grid-auto-flow: column;
-  gap: .75rem;
-  height: 100%;
-  padding-inline: calc(50% - var(--photo-lottery-card-width) / 2);
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border: 1px solid rgb(255 255 255 / 30%);
+  border-radius: 999px;
+  color: white;
+  background: rgb(255 255 255 / 10%);
+  box-shadow: 0 0 0 8px rgb(129 107 255 / 10%), 0 0 34px rgb(115 88 255 / 60%);
+  backdrop-filter: blur(14px);
+  transition: transform 180ms ease, background 180ms ease, opacity 180ms ease;
 }
-.photo-lottery-roll-track { animation: photo-lottery-roll 1.15s linear infinite; }
-.photo-lottery-finish-track { transition: transform 1.35s cubic-bezier(.12,.8,.18,1); }
-.photo-lottery-card { min-width: 0; padding-block: .45rem; }
-@keyframes photo-lottery-roll {
-  from { transform: translateX(0); }
-  to { transform: translateX(calc(-5 * (var(--photo-lottery-card-width) + .75rem))); }
+.sphere-icon-control:hover { transform: scale(1.1); background: rgb(255 255 255 / 22%); }
+.sphere-icon-control:active { transform: scale(.94); }
+.sphere-icon-control:disabled { opacity: .36; cursor: default; transform: none; }
+.sphere-icon-control--alert { box-shadow: 0 0 0 8px rgb(255 82 130 / 12%), 0 0 34px rgb(255 56 103 / 66%); color: #ff9bbb; }
+@media (max-width: 640px) {
+  .sphere-photo-card { width: 43px; height: 53px; border-radius: 8px; }
+  .sphere-winner-card { width: min(34vw, 156px); border-radius: 16px; }
 }
 
 @layer base {
@@ -228,6 +279,5 @@
 @media (prefers-reduced-motion: reduce) {
   .reveal-roulette-track, .reveal-lock-icon, .reveal-constellation svg circle,
   .reveal-star-label, .reveal-dice-pair span { animation-duration: 3s; }
-  .photo-lottery-roll-track { animation-duration: 3s; }
 }
 

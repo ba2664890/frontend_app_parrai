@@ -133,30 +133,6 @@
 .draw-sphere-screen::after {
   background: radial-gradient(circle at center, transparent 48%, rgb(28 27 27 / 9%) 100%);
 }
-.sphere-photo-card {
-  width: 43px;
-  height: 54px;
-  overflow: hidden;
-  border: 1.5px solid;
-  border-radius: 11px;
-  background: #ffffff;
-  transform: translate(-50%, -50%);
-  backdrop-filter: blur(4px);
-  transition: opacity 700ms ease, filter 700ms ease;
-}
-.sphere-photo-card img,
-.sphere-winner-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.sphere-photo-fallback { width: 100%; height: 100%; display: grid; place-items: center; }
-.sphere-photo-fallback svg { width: 62%; height: 62%; filter: drop-shadow(0 0 8px rgb(255 255 255 / 42%)); }
-.sphere-winner-card {
-  width: min(15vw, 128px);
-  aspect-ratio: 4 / 5;
-  overflow: hidden;
-  border: 3px solid;
-  border-radius: 22px;
-  background: #ffffff;
-  transform: translate(-50%, -50%);
-}
 .sphere-icon-control {
   display: inline-flex;
   align-items: center;
@@ -183,8 +159,6 @@
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @media (max-width: 640px) {
-  .sphere-photo-card { width: 34px; height: 43px; border-radius: 8px; }
-  .sphere-winner-card { width: min(23vw, 112px); border-radius: 16px; }
   .sphere-icon-control { min-height: 46px; padding: 0 .85rem; }
   .newcomer-stage-avatar { width: 116px; height: 116px; }
 }

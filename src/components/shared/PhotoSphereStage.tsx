@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Html, OrbitControls, Sparkles, Stars } from "@react-three/drei";
+import { Billboard, Image, OrbitControls, Sparkles, Stars } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { Etudiant, PortraitEtudiant } from "@/lib/types";
@@ -20,6 +20,25 @@ function fibonacciSphere(count: number, radius: number): THREE.Vector3[] {
   });
 }
 
+function PortraitFallback({ tone }: { tone: string }) {
+  return (
+    <group position={[0, 0, 0.018]}>
+      <mesh position={[0, 0, -0.01]}>
+        <planeGeometry args={[0.43, 0.54]} />
+        <meshBasicMaterial color="#F0EDED" />
+      </mesh>
+      <mesh position={[0, 0.08, 0]}>
+        <circleGeometry args={[0.092, 20]} />
+        <meshBasicMaterial color={tone} />
+      </mesh>
+      <mesh position={[0, -0.105, 0]} scale={[0.2, 0.16, 1]}>
+        <circleGeometry args={[1, 20]} />
+        <meshBasicMaterial color={tone} />
+      </mesh>
+    </group>
+  );
+}
+
 function SilentPortraitCard({
   portrait,
   position,
@@ -33,21 +52,19 @@ function SilentPortraitCard({
 }) {
   return (
     <group position={position}>
-      <Html transform sprite distanceFactor={7.3} zIndexRange={[0, 0]}>
-        <div
-          className="sphere-photo-card"
-          style={{ borderColor: tone, opacity: dimmed ? 0.12 : 1, boxShadow: `0 0 18px ${tone}88` }}
-          aria-label="Portrait participant"
-        >
+      <Billboard follow>
+        <group scale={dimmed ? 0.72 : 1}>
+          <mesh position={[0, 0, -0.014]}>
+            <planeGeometry args={[0.5, 0.62]} />
+            <meshBasicMaterial color={tone} transparent opacity={dimmed ? 0.4 : 0.9} />
+          </mesh>
           {portrait.photo ? (
-            <img src={portrait.photo} alt="" draggable={false} />
+            <Image url={portrait.photo} scale={[0.43, 0.54]} transparent opacity={dimmed ? 0.52 : 1} toneMapped={false} />
           ) : (
-            <div className="sphere-photo-fallback" style={{ background: `radial-gradient(circle at 30% 20%, ${tone}99, #f0eded 72%)` }}>
-              <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="34" r="17" fill="rgba(255,255,255,.92)" /><path d="M18 89c4-24 18-34 32-34s28 10 32 34" fill="rgba(255,255,255,.92)" /></svg>
-            </div>
+            <PortraitFallback tone={tone} />
           )}
-        </div>
-      </Html>
+        </group>
+      </Billboard>
     </group>
   );
 }
@@ -71,16 +88,18 @@ function WinnerPortrait({ winner, tone, side }: { winner: Etudiant; tone: string
   });
 
   return (
-    <group ref={card} position={[side * 2.8, 0, 1.7]} scale={0.08}>
+    <group ref={card} position={[side * 2.15, 0, 1.7]} scale={0.1}>
       <mesh ref={halo}>
-        <circleGeometry args={[1.55, 48]} />
+        <circleGeometry args={[1.12, 48]} />
         <meshBasicMaterial color={tone} transparent opacity={0.35} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
-      <Html transform sprite distanceFactor={8.2} zIndexRange={[2, 2]}>
-        <div className="sphere-winner-card" style={{ borderColor: tone, boxShadow: `0 0 46px ${tone}, inset 0 0 18px ${tone}66` }} aria-label="Parrain sélectionné">
-          {winner.photo ? <img src={winner.photo} alt="" draggable={false} /> : <div className="sphere-photo-fallback" style={{ background: `radial-gradient(circle at 30% 20%, ${tone}99, #f0eded 72%)` }}><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="34" r="17" fill="rgba(255,255,255,.92)" /><path d="M18 89c4-24 18-34 32-34s28 10 32 34" fill="rgba(255,255,255,.92)" /></svg></div>}
-        </div>
-      </Html>
+      <Billboard follow>
+        <mesh position={[0, 0, -0.02]}>
+          <planeGeometry args={[1.18, 1.48]} />
+          <meshBasicMaterial color={tone} />
+        </mesh>
+        {winner.photo ? <Image url={winner.photo} scale={[1.04, 1.34]} position={[0, 0, 0.01]} toneMapped={false} /> : <group scale={2.5}><PortraitFallback tone={tone} /></group>}
+      </Billboard>
     </group>
   );
 }

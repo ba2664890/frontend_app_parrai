@@ -105,8 +105,9 @@ export function TirageScreen() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erreur de tirage";
       if (isExpectedFlowError(msg)) {
-        setError(null);
-        await suivant();
+        // Ne pas appeler automatiquement le candidat suivant : une urne vide
+        // ou un candidat périmé doit rester visible pour l'opérateur.
+        setError(`${msg}. Aucun nouveau suivant n’a été appelé automatiquement.`);
         return;
       }
       setError(msg);
@@ -355,6 +356,7 @@ export function TirageScreen() {
             </button>
             <button
               onClick={suivant}
+              disabled={revealing || !!drawingResult}
               className="flex items-center gap-1.5 px-space-md py-space-xs rounded-full font-label-md text-label-md font-semibold text-blanc-pure bg-vert-teranga hover:bg-primary-container shadow-md transition-all"
             >
               <span>Étudiant Suivant</span>

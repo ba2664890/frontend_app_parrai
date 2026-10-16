@@ -26,6 +26,7 @@ export function ResultatsScreen() {
   const setView = useAppStore((s) => s.setView);
   const setCurrentNouveau = useAppStore((s) => s.setCurrentNouveau);
   const setCurrentTirage = useAppStore((s) => s.setCurrentTirage);
+  const setDrawAnimation = useAppStore((s) => s.setDrawAnimation);
   const setStats = useAppStore((s) => s.setStats);
 
   const [mentorIdx, setMentorIdx] = useState(0);
@@ -54,6 +55,7 @@ export function ResultatsScreen() {
       );
       setCurrentNouveau(nouveau);
       setCurrentTirage(null);
+      setDrawAnimation(null);
       if (!nouveau) {
         const latestStats = await api.stats();
         setStats(latestStats);

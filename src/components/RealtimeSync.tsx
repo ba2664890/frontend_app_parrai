@@ -69,8 +69,15 @@ export function RealtimeSync() {
       }),
       on("tirage:execute", (data) => {
         const { tirage } = data as { tirage: TirageResult };
+        const state = useAppStore.getState();
+
+        // Le backend diffuse avant de répondre au POST. Le client qui exécute
+        // le tirage doit rester sur Tirage pour jouer son animation; ignorer
+        // aussi les événements retardés d'un ancien filleul.
+        if (state.currentNouveau?.id !== tirage.filleul.id) return;
+
         setCurrentTirage(tirage);
-        setView("resultats");
+        if (state.view !== "tirage") setView("resultats");
       }),
     ];
 

@@ -158,15 +158,6 @@
 .sphere-icon-control--secondary { color: #c62f24; border-color: rgb(198 47 36 / 18%); }
 .newcomer-stage-card { animation: newcomer-stage-arrival 520ms cubic-bezier(.16,.9,.25,1) both; }
 .newcomer-stage-avatar { width: 144px; height: 144px; }
-.draw-reveal-overlay {
-  background: linear-gradient(180deg, rgb(252 249 248 / 72%), rgb(252 249 248 / 92%));
-  backdrop-filter: blur(7px);
-  animation: draw-reveal-overlay-in 420ms ease-out both;
-}
-@keyframes draw-reveal-overlay-in {
-  from { opacity: 0; transform: scale(.985); }
-  to { opacity: 1; transform: scale(1); }
-}
 @keyframes newcomer-stage-arrival {
   from { opacity: 0; transform: translateY(24px) scale(.94); }
   to { opacity: 1; transform: translateY(0) scale(1); }

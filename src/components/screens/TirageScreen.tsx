@@ -3,8 +3,6 @@ import { useAppStore } from "@/store/useAppStore";
 import { api } from "@/lib/api";
 import { spawnConfetti } from "@/components/shared/Confetti";
 import { StageBackground } from "@/components/shared/StageBackground";
-import { FamilyCard } from "@/components/shared/FamilyCard";
-import { MentorRevealCard } from "@/components/shared/MentorRevealCard";
 import type { SphereDrawPhase } from "@/components/shared/PhotoSphereStage";
 import { FILIERE_COULEUR, FILIERE_LIBELLE, initiales, nomComplet, type Etudiant, type PortraitEtudiant, type TirageResult } from "@/lib/types";
 
@@ -15,6 +13,7 @@ type DrawState = "idle" | "rolling" | "settling" | "revealing" | "complete" | "e
 
 const MIN_ROLL_DURATION_MS = 2800;
 const SETTLING_DURATION_MS = 2200;
+const REVEAL_DURATION_MS = 3000;
 
 function NouveauOnStage({ nouveau }: { nouveau: Etudiant }) {
   const color = FILIERE_COULEUR[nouveau.filiereCode] ?? "#1F7A3A";
@@ -50,7 +49,7 @@ export function TirageScreen() {
   const [drawState, setDrawState] = useState<DrawState>("idle");
   const [portraits, setPortraits] = useState<PortraitEtudiant[]>([]);
   const [tirage, setTirage] = useState<TirageResult | null>(null);
-  const [, setRevealed] = useState({ two: false, three: false });
+  const [revealProgress, setRevealProgress] = useState(0);
   const drawLockRef = useRef(false);
   const timersRef = useRef<number[]>([]);
 
@@ -79,7 +78,7 @@ export function TirageScreen() {
     setLocalDrawInProgress(false);
     setDrawState("idle");
     setTirage(null);
-    setRevealed({ two: false, three: false });
+    setRevealProgress(0);
   }, [currentNouveau?.id, setLocalDrawInProgress]);
 
   const decouvrir = async () => {
@@ -88,7 +87,7 @@ export function TirageScreen() {
     setLocalDrawInProgress(true);
     setDrawState("rolling");
     setTirage(null);
-    setRevealed({ two: false, three: false });
+    setRevealProgress(0);
     const startedAt = Date.now();
 
     try {
@@ -117,6 +116,24 @@ export function TirageScreen() {
     }
   };
 
+  // Les deux portraits sélectionnés restent dans la scène WebGL : seule leur
+  // texture se défloute pendant ce compte à rebours commun.
+  useEffect(() => {
+    if (drawState !== "revealing") return;
+    const startedAt = Date.now();
+    const interval = window.setInterval(() => {
+      const progress = Math.min(1, (Date.now() - startedAt) / REVEAL_DURATION_MS);
+      setRevealProgress(progress);
+      if (progress === 1) {
+        window.clearInterval(interval);
+        setDrawState("complete");
+        setLocalDrawInProgress(false);
+        spawnConfetti(100);
+      }
+    }, 50);
+    return () => window.clearInterval(interval);
+  }, [drawState, setLocalDrawInProgress]);
+
   const chargerSuivant = async () => {
     if (currentNouveau && drawState !== "complete") return;
     try {
@@ -143,18 +160,6 @@ export function TirageScreen() {
     }
   };
 
-  const handleParrainRevealed = (niveau: 2 | 3) => {
-    setRevealed((previous) => {
-      const next = niveau === 2 ? { ...previous, two: true } : { ...previous, three: true };
-      if (next.two && next.three) {
-        setDrawState("complete");
-        setLocalDrawInProgress(false);
-        spawnConfetti(100);
-      }
-      return next;
-    });
-  };
-
   const scenePhase: SphereDrawPhase = drawState === "rolling"
     ? "rolling"
     : drawState === "settling"
@@ -176,37 +181,11 @@ export function TirageScreen() {
           winner3={winnersVisible ? tirage?.parrain3 ?? null : null}
           phase={scenePhase}
           showMentorSpheres={showMentorSpheres}
+          revealProgress={revealProgress}
         />
       </Suspense>
 
       {currentNouveau && canStart && <NouveauOnStage nouveau={currentNouveau} />}
-
-      {drawState === "revealing" && tirage && (
-        <div className="draw-reveal-overlay absolute inset-0 z-20 flex items-center justify-center px-space-md pb-28 pt-space-md">
-          <div className="grid w-full max-w-5xl gap-5 md:grid-cols-2">
-            <MentorRevealCard
-              key={`tirage-2-${tirage.parrain2.id}`}
-              parrain={tirage.parrain2}
-              niveau={2}
-              onRevealed={() => handleParrainRevealed(2)}
-            />
-            <MentorRevealCard
-              key={`tirage-3-${tirage.parrain3.id}`}
-              parrain={tirage.parrain3}
-              niveau={3}
-              onRevealed={() => handleParrainRevealed(3)}
-            />
-          </div>
-        </div>
-      )}
-
-      {drawState === "complete" && tirage && (
-        <div className="draw-reveal-overlay absolute inset-0 z-20 flex items-center justify-center overflow-y-auto px-space-md pb-28 pt-space-md">
-          <div className="w-full max-w-5xl">
-            <FamilyCard tirage={tirage} />
-          </div>
-        </div>
-      )}
 
       <div className="pointer-events-none absolute inset-x-0 bottom-8 z-30 flex items-center justify-center gap-5">
         {canStart && currentNouveau && (

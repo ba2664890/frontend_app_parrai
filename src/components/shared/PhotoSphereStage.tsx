@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Billboard, Image, OrbitControls, Sparkles, Stars } from "@react-three/drei";
-import { useMemo, useRef } from "react";
+import { Billboard, Image, OrbitControls, Sparkles, Stars, Text, useTexture } from "@react-three/drei";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { Etudiant, PortraitEtudiant } from "@/lib/types";
 
@@ -39,6 +39,51 @@ function PortraitFallback({ tone }: { tone: string }) {
   );
 }
 
+/** Texture WebGL floutée progressivement : aucune carte HTML ne sort de la scène. */
+function BlurredPhoto({
+  url,
+  scale,
+  blur,
+}: {
+  url: string;
+  scale: [number, number];
+  blur: number;
+}) {
+  const texture = useTexture(url);
+  const material = useMemo(() => new THREE.ShaderMaterial({
+    uniforms: {
+      map: { value: texture },
+      blur: { value: blur },
+    },
+    vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform sampler2D map; uniform float blur; varying vec2 vUv;
+      void main() {
+        vec2 b = vec2(blur);
+        vec4 color = texture2D(map, vUv) * .20;
+        color += texture2D(map, vUv + vec2( b.x, 0.0)) * .12;
+        color += texture2D(map, vUv + vec2(-b.x, 0.0)) * .12;
+        color += texture2D(map, vUv + vec2(0.0,  b.y)) * .12;
+        color += texture2D(map, vUv + vec2(0.0, -b.y)) * .12;
+        color += texture2D(map, vUv + vec2( b.x,  b.y)) * .08;
+        color += texture2D(map, vUv + vec2(-b.x,  b.y)) * .08;
+        color += texture2D(map, vUv + vec2( b.x, -b.y)) * .08;
+        color += texture2D(map, vUv + vec2(-b.x, -b.y)) * .08;
+        gl_FragColor = color;
+      }`,
+    transparent: true,
+    toneMapped: false,
+  }), [texture]);
+
+  useEffect(() => {
+    material.uniforms.blur.value = blur;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    material.needsUpdate = true;
+  }, [blur, material, texture]);
+  useEffect(() => () => material.dispose(), [material]);
+
+  return <mesh><planeGeometry args={scale} /><primitive object={material} attach="material" /></mesh>;
+}
+
 function SilentPortraitCard({
   portrait,
   position,
@@ -69,13 +114,13 @@ function SilentPortraitCard({
   );
 }
 
-function WinnerPortrait({ winner, tone, side }: { winner: Etudiant; tone: string; side: -1 | 1 }) {
+function WinnerPortrait({ winner, tone, side, level, revealProgress }: { winner: Etudiant; tone: string; side: -1 | 1; level: 2 | 3; revealProgress: number }) {
   const card = useRef<THREE.Group>(null);
   const halo = useRef<THREE.Mesh>(null);
 
   useFrame(({ clock }, delta) => {
     if (card.current) {
-      const targetScale = 1.12;
+      const targetScale = 1;
       const scale = THREE.MathUtils.damp(card.current.scale.x, targetScale, 4.5, delta);
       card.current.scale.setScalar(scale);
       card.current.position.y = Math.sin(clock.getElapsedTime() * 1.7 + side) * 0.1;
@@ -88,17 +133,30 @@ function WinnerPortrait({ winner, tone, side }: { winner: Etudiant; tone: string
   });
 
   return (
-    <group ref={card} position={[side * 2.15, 0, 1.7]} scale={0.1}>
+    <group ref={card} position={[side * 2.28, 0, 1.7]} scale={0.1}>
       <mesh ref={halo}>
-        <circleGeometry args={[1.12, 48]} />
+        <circleGeometry args={[1.7, 48]} />
         <meshBasicMaterial color={tone} transparent opacity={0.35} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       <Billboard follow>
         <mesh position={[0, 0, -0.02]}>
-          <planeGeometry args={[1.18, 1.48]} />
+          <planeGeometry args={[1.82, 2.3]} />
           <meshBasicMaterial color={tone} />
         </mesh>
-        {winner.photo ? <Image url={winner.photo} scale={[1.04, 1.34]} position={[0, 0, 0.01]} toneMapped={false} /> : <group scale={2.5}><PortraitFallback tone={tone} /></group>}
+        {winner.photo ? <BlurredPhoto url={winner.photo} scale={[1.64, 2.1]} blur={0.042 * (1 - revealProgress)} /> : <group scale={3.8}><PortraitFallback tone={tone} /></group>}
+        {revealProgress < 1 && (
+          <Text position={[0, 0, 0.035]} fontSize={0.68} color="#FFFFFF" anchorX="center" anchorY="middle" outlineWidth={0.025} outlineColor="#1C1B1B">
+            {Math.max(0, Math.ceil(3 * (1 - revealProgress)))}
+          </Text>
+        )}
+        <Text position={[0, -1.36, 0.035]} fontSize={0.17} color={tone} anchorX="center" anchorY="middle" outlineWidth={0.008} outlineColor="#FFFFFF">
+          {`PARRAIN ${level}E ANNÉE`}
+        </Text>
+        {revealProgress >= 1 && (
+          <Text position={[0, -1.6, 0.035]} fontSize={0.16} color="#1C1B1B" anchorX="center" anchorY="middle" maxWidth={2.4} textAlign="center" outlineWidth={0.006} outlineColor="#FFFFFF">
+            {`${winner.prenom} ${winner.nom}`.toUpperCase()}
+          </Text>
+        )}
       </Billboard>
     </group>
   );
@@ -110,12 +168,14 @@ function MentorSphere({
   level,
   phase,
   position,
+  revealProgress,
 }: {
   portraits: SpherePortrait[];
   winner: Etudiant | null;
   level: 2 | 3;
   phase: SphereDrawPhase;
   position: [number, number, number];
+  revealProgress: number;
 }) {
   const orbit = useRef<THREE.Group>(null);
   const shell = useRef<THREE.Mesh>(null);
@@ -146,10 +206,15 @@ function MentorSphere({
         <meshPhysicalMaterial color={tone} transparent opacity={0.1} roughness={0.22} metalness={0.7} wireframe />
       </mesh>
       <Sparkles count={phase === "rolling" ? 76 : 28} scale={4.35} size={phase === "rolling" ? 2.4 : 1.3} speed={phase === "rolling" ? 2.4 : 0.3} color={tone} />
+      <Billboard follow position={[0, 2.32, 0]}>
+        <Text fontSize={0.2} color={tone} anchorX="center" anchorY="middle" outlineWidth={0.009} outlineColor="#FFFFFF">
+          {`PARRAIN ${level}E ANNÉE`}
+        </Text>
+      </Billboard>
       <group ref={orbit}>
         {cards.map((portrait, index) => <SilentPortraitCard key={portrait.id} portrait={portrait} position={points[index]} tone={tone} dimmed={Boolean(winner && (phase === "revealing" || phase === "complete"))} />)}
       </group>
-      {winner && (phase === "revealing" || phase === "complete") && <WinnerPortrait winner={winner} tone={tone} side={level === 2 ? -1 : 1} />}
+      {winner && (phase === "revealing" || phase === "complete") && <WinnerPortrait winner={winner} tone={tone} side={level === 2 ? -1 : 1} level={level} revealProgress={revealProgress} />}
     </group>
   );
 }
@@ -162,7 +227,7 @@ function CameraMotion({ phase }: { phase: SphereDrawPhase }) {
   return null;
 }
 
-function SphereScene({ portraits, winner2, winner3, phase, showMentorSpheres }: { portraits: PortraitEtudiant[]; winner2: Etudiant | null; winner3: Etudiant | null; phase: SphereDrawPhase; showMentorSpheres: boolean }) {
+function SphereScene({ portraits, winner2, winner3, phase, showMentorSpheres, revealProgress }: { portraits: PortraitEtudiant[]; winner2: Etudiant | null; winner3: Etudiant | null; phase: SphereDrawPhase; showMentorSpheres: boolean; revealProgress: number }) {
   const level2 = portraits.filter((portrait) => portrait.niveau === 2);
   const level3 = portraits.filter((portrait) => portrait.niveau === 3);
   return (
@@ -173,8 +238,8 @@ function SphereScene({ portraits, winner2, winner3, phase, showMentorSpheres }: 
       <Stars radius={28} depth={16} count={260} factor={2} saturation={0} fade speed={phase === "rolling" ? 1.5 : 0.25} />
       <Sparkles count={90} scale={[13, 8, 4]} size={1.6} speed={phase === "rolling" ? 1.8 : 0.25} color="#FFD800" />
       {showMentorSpheres && <>
-        <MentorSphere portraits={level2} winner={winner2} level={2} phase={phase} position={[-2.3, 0, 0]} />
-        <MentorSphere portraits={level3} winner={winner3} level={3} phase={phase} position={[2.3, 0, 0]} />
+        <MentorSphere portraits={level2} winner={winner2} level={2} phase={phase} position={[-2.3, 0, 0]} revealProgress={revealProgress} />
+        <MentorSphere portraits={level3} winner={winner3} level={3} phase={phase} position={[2.3, 0, 0]} revealProgress={revealProgress} />
       </>}
       <CameraMotion phase={phase} />
       <OrbitControls enablePan={false} enableDamping dampingFactor={0.06} minDistance={7} maxDistance={15} />
@@ -188,12 +253,14 @@ export function PhotoSphereStage({
   winner3,
   phase,
   showMentorSpheres = true,
+  revealProgress = 0,
 }: {
   portraits: PortraitEtudiant[];
   winner2: Etudiant | null;
   winner3: Etudiant | null;
   phase: SphereDrawPhase;
   showMentorSpheres?: boolean;
+  revealProgress?: number;
 }) {
   return (
     <Canvas
@@ -203,7 +270,7 @@ export function PhotoSphereStage({
       camera={{ position: [0, 0, 11.6], fov: 42 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
     >
-      <SphereScene portraits={portraits} winner2={winner2} winner3={winner3} phase={phase} showMentorSpheres={showMentorSpheres} />
+      <SphereScene portraits={portraits} winner2={winner2} winner3={winner3} phase={phase} showMentorSpheres={showMentorSpheres} revealProgress={revealProgress} />
     </Canvas>
   );
 }

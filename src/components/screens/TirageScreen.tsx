@@ -99,7 +99,7 @@ export function TirageScreen() {
       setCurrentTirage(tirage);
       resetReveal();
       spawnConfetti(60);
-      setShowResult(true);
+      setShowResult(false);
       setDrawProgress(0);
       setDrawAnimation(tirage);
     } catch (e) {

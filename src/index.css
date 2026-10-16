@@ -109,14 +109,10 @@
   50% { transform: translateY(-12px); }
 }
 
-/* Scène de cérémonie 3D : aucun libellé visible, uniquement les objets animés. */
+/* Scène de cérémonie 3D : elle reprend les surfaces et la palette de l'accueil. */
 .draw-sphere-screen {
   isolation: isolate;
-  background:
-    radial-gradient(circle at 50% 47%, rgb(255 216 0 / 18%), transparent 31%),
-    radial-gradient(circle at 12% 16%, rgb(31 122 58 / 14%), transparent 34%),
-    radial-gradient(circle at 88% 82%, rgb(198 47 36 / 12%), transparent 38%),
-    #fcf9f8;
+  background: #fcf9f8;
 }
 .draw-sphere-screen::before,
 .draw-sphere-screen::after {
@@ -127,8 +123,8 @@
   z-index: 1;
 }
 .draw-sphere-screen::before {
-  background: radial-gradient(circle at center, transparent 32%, rgb(31 122 58 / 4%) 100%);
-  opacity: .9;
+  background: radial-gradient(circle at center, rgb(255 255 255 / 18%), transparent 62%);
+  opacity: .75;
 }
 .draw-sphere-screen::after {
   background: radial-gradient(circle at center, transparent 48%, rgb(28 27 27 / 9%) 100%);
@@ -140,20 +136,37 @@
   gap: .55rem;
   min-height: 52px;
   padding: 0 1.15rem;
-  border: 1px solid rgb(255 255 255 / 30%);
+  border: 1px solid rgb(31 122 58 / 18%);
   border-radius: 999px;
   color: #1f7a3a;
-  background: rgb(255 255 255 / 84%);
-  box-shadow: 0 0 0 8px rgb(31 122 58 / 10%), 0 0 28px rgb(255 216 0 / 72%);
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 10px 24px -12px rgb(26 26 26 / 28%);
   backdrop-filter: blur(14px);
   transition: transform 180ms ease, background 180ms ease, opacity 180ms ease;
 }
-.sphere-icon-control:hover { transform: scale(1.1); background: rgb(255 255 255 / 22%); }
+.sphere-icon-control:hover { transform: scale(1.05); background: #ffffff; }
 .sphere-icon-control:active { transform: scale(.94); }
 .sphere-icon-control:disabled { opacity: .36; cursor: default; transform: none; }
 .sphere-icon-control--alert { box-shadow: 0 0 0 8px rgb(198 47 36 / 12%), 0 0 30px rgb(198 47 36 / 45%); color: #c62f24; }
+.sphere-icon-control--primary {
+  border-color: transparent;
+  color: #ffffff;
+  background: linear-gradient(115deg, #1f7a3a 0%, #ffd800 52%, #c62f24 100%);
+  box-shadow: 0 18px 34px -16px rgb(31 122 58 / 58%);
+}
+.sphere-icon-control--primary:hover { background: linear-gradient(115deg, #1b6d34 0%, #e9c600 52%, #b92b21 100%); }
+.sphere-icon-control--secondary { color: #c62f24; border-color: rgb(198 47 36 / 18%); }
 .newcomer-stage-card { animation: newcomer-stage-arrival 520ms cubic-bezier(.16,.9,.25,1) both; }
 .newcomer-stage-avatar { width: 144px; height: 144px; }
+.draw-reveal-overlay {
+  background: linear-gradient(180deg, rgb(252 249 248 / 72%), rgb(252 249 248 / 92%));
+  backdrop-filter: blur(7px);
+  animation: draw-reveal-overlay-in 420ms ease-out both;
+}
+@keyframes draw-reveal-overlay-in {
+  from { opacity: 0; transform: scale(.985); }
+  to { opacity: 1; transform: scale(1); }
+}
 @keyframes newcomer-stage-arrival {
   from { opacity: 0; transform: translateY(24px) scale(.94); }
   to { opacity: 1; transform: translateY(0) scale(1); }

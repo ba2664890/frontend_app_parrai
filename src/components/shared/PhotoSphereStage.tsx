@@ -55,13 +55,13 @@ function SilentPortraitCard({
       <Billboard follow>
         <group scale={dimmed ? 0.72 : 1}>
           <mesh position={[0, 0, -0.014]}>
-            <planeGeometry args={[0.5, 0.62]} />
+            <planeGeometry args={[0.76, 0.94]} />
             <meshBasicMaterial color={tone} transparent opacity={dimmed ? 0.4 : 0.9} />
           </mesh>
           {portrait.photo ? (
-            <Image url={portrait.photo} scale={[0.43, 0.54]} transparent opacity={dimmed ? 0.52 : 1} toneMapped={false} />
+            <Image url={portrait.photo} scale={[0.66, 0.84]} transparent opacity={dimmed ? 0.52 : 1} toneMapped={false} />
           ) : (
-            <PortraitFallback tone={tone} />
+            <group scale={1.55}><PortraitFallback tone={tone} /></group>
           )}
         </group>
       </Billboard>
@@ -167,8 +167,6 @@ function SphereScene({ portraits, winner2, winner3, phase, showMentorSpheres }: 
   const level3 = portraits.filter((portrait) => portrait.niveau === 3);
   return (
     <>
-      <color attach="background" args={["#FCF9F8"]} />
-      <fog attach="fog" args={["#FCF9F8", 8, 18]} />
       <ambientLight intensity={1.8} />
       <directionalLight position={[4, 5, 6]} color="#FFFFFF" intensity={3.2} />
       <directionalLight position={[-5, -3, 4]} color="#FFD800" intensity={1.8} />
@@ -203,7 +201,7 @@ export function PhotoSphereStage({
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}
       dpr={[1, 1.5]}
       camera={{ position: [0, 0, 11.6], fov: 42 }}
-      gl={{ antialias: true, powerPreference: "high-performance" }}
+      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
     >
       <SphereScene portraits={portraits} winner2={winner2} winner3={winner3} phase={phase} showMentorSpheres={showMentorSpheres} />
     </Canvas>

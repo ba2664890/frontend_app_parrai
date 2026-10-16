@@ -2,6 +2,9 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { api } from "@/lib/api";
 import { spawnConfetti } from "@/components/shared/Confetti";
+import { StageBackground } from "@/components/shared/StageBackground";
+import { FamilyCard } from "@/components/shared/FamilyCard";
+import { MentorRevealCard } from "@/components/shared/MentorRevealCard";
 import type { SphereDrawPhase } from "@/components/shared/PhotoSphereStage";
 import { FILIERE_COULEUR, FILIERE_LIBELLE, initiales, nomComplet, type Etudiant, type PortraitEtudiant, type TirageResult } from "@/lib/types";
 
@@ -12,7 +15,6 @@ type DrawState = "idle" | "rolling" | "settling" | "revealing" | "complete" | "e
 
 const MIN_ROLL_DURATION_MS = 2800;
 const SETTLING_DURATION_MS = 2200;
-const REVEAL_DURATION_MS = 3100;
 
 function NouveauOnStage({ nouveau }: { nouveau: Etudiant }) {
   const color = FILIERE_COULEUR[nouveau.filiereCode] ?? "#1F7A3A";
@@ -48,6 +50,7 @@ export function TirageScreen() {
   const [drawState, setDrawState] = useState<DrawState>("idle");
   const [portraits, setPortraits] = useState<PortraitEtudiant[]>([]);
   const [tirage, setTirage] = useState<TirageResult | null>(null);
+  const [, setRevealed] = useState({ two: false, three: false });
   const drawLockRef = useRef(false);
   const timersRef = useRef<number[]>([]);
 
@@ -76,6 +79,7 @@ export function TirageScreen() {
     setLocalDrawInProgress(false);
     setDrawState("idle");
     setTirage(null);
+    setRevealed({ two: false, three: false });
   }, [currentNouveau?.id, setLocalDrawInProgress]);
 
   const decouvrir = async () => {
@@ -84,6 +88,7 @@ export function TirageScreen() {
     setLocalDrawInProgress(true);
     setDrawState("rolling");
     setTirage(null);
+    setRevealed({ two: false, three: false });
     const startedAt = Date.now();
 
     try {
@@ -104,11 +109,6 @@ export function TirageScreen() {
         setDrawState("revealing");
         spawnConfetti(70);
       }, SETTLING_DURATION_MS));
-      timersRef.current.push(window.setTimeout(() => {
-        setDrawState("complete");
-        setLocalDrawInProgress(false);
-        spawnConfetti(100);
-      }, SETTLING_DURATION_MS + REVEAL_DURATION_MS));
     } catch {
       // Aucun tirage suivant n'est déclenché : l'icône rouge permet un nouvel essai.
       setDrawState("error");
@@ -143,6 +143,18 @@ export function TirageScreen() {
     }
   };
 
+  const handleParrainRevealed = (niveau: 2 | 3) => {
+    setRevealed((previous) => {
+      const next = niveau === 2 ? { ...previous, two: true } : { ...previous, three: true };
+      if (next.two && next.three) {
+        setDrawState("complete");
+        setLocalDrawInProgress(false);
+        spawnConfetti(100);
+      }
+      return next;
+    });
+  };
+
   const scenePhase: SphereDrawPhase = drawState === "rolling"
     ? "rolling"
     : drawState === "settling"
@@ -156,6 +168,7 @@ export function TirageScreen() {
 
   return (
     <section className="draw-sphere-screen relative min-h-[calc(100vh-5rem-3.5rem)] w-full overflow-hidden" aria-label="Scène de tirage en sphères 3D">
+      <StageBackground variant="festive" />
       <Suspense fallback={<div className="absolute inset-0 grid place-items-center"><span className="h-28 w-28 animate-ping rounded-full border border-violet-300/60 shadow-[0_0_70px_rgba(139,92,246,.9)]" /></div>}>
         <PhotoSphereStage
           portraits={portraits}
@@ -168,12 +181,39 @@ export function TirageScreen() {
 
       {currentNouveau && canStart && <NouveauOnStage nouveau={currentNouveau} />}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-8 z-10 flex items-center justify-center gap-5">
+      {drawState === "revealing" && tirage && (
+        <div className="draw-reveal-overlay absolute inset-0 z-20 flex items-center justify-center px-space-md pb-28 pt-space-md">
+          <div className="grid w-full max-w-5xl gap-5 md:grid-cols-2">
+            <MentorRevealCard
+              key={`tirage-2-${tirage.parrain2.id}`}
+              parrain={tirage.parrain2}
+              niveau={2}
+              onRevealed={() => handleParrainRevealed(2)}
+            />
+            <MentorRevealCard
+              key={`tirage-3-${tirage.parrain3.id}`}
+              parrain={tirage.parrain3}
+              niveau={3}
+              onRevealed={() => handleParrainRevealed(3)}
+            />
+          </div>
+        </div>
+      )}
+
+      {drawState === "complete" && tirage && (
+        <div className="draw-reveal-overlay absolute inset-0 z-20 flex items-center justify-center overflow-y-auto px-space-md pb-28 pt-space-md">
+          <div className="w-full max-w-5xl">
+            <FamilyCard tirage={tirage} />
+          </div>
+        </div>
+      )}
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-8 z-30 flex items-center justify-center gap-5">
         {canStart && currentNouveau && (
           <button
             type="button"
             onClick={decouvrir}
-            className={"pointer-events-auto sphere-icon-control " + (drawState === "error" ? "sphere-icon-control--alert" : "")}
+            className={"pointer-events-auto sphere-icon-control sphere-icon-control--primary " + (drawState === "error" ? "sphere-icon-control--alert" : "")}
             aria-label={drawState === "error" ? "Réessayer le tirage" : "Lancer le tirage"}
           >
             <span className="material-symbols-outlined text-2xl">{drawState === "error" ? "refresh" : "play_arrow"}</span>
@@ -181,19 +221,19 @@ export function TirageScreen() {
           </button>
         )}
         {canStart && currentNouveau && (
-          <button type="button" onClick={marquerAbsent} className="pointer-events-auto sphere-icon-control" aria-label="Marquer le nouveau absent">
+          <button type="button" onClick={marquerAbsent} className="pointer-events-auto sphere-icon-control sphere-icon-control--secondary" aria-label="Marquer le nouveau absent">
             <span className="material-symbols-outlined text-2xl">person_remove</span>
             <span className="font-label-md text-sm font-black uppercase tracking-wider">Absent</span>
           </button>
         )}
         {!currentNouveau && (
-          <button type="button" onClick={chargerSuivant} className={"pointer-events-auto sphere-icon-control " + (drawState === "error" ? "sphere-icon-control--alert" : "")} aria-label="Appeler le nouveau suivant">
+          <button type="button" onClick={chargerSuivant} className={"pointer-events-auto sphere-icon-control sphere-icon-control--primary " + (drawState === "error" ? "sphere-icon-control--alert" : "")} aria-label="Appeler le nouveau suivant">
             <span className="material-symbols-outlined text-2xl">play_arrow</span>
             <span className="font-label-md text-sm font-black uppercase tracking-wider">Nouveau suivant</span>
           </button>
         )}
         {drawState === "complete" && (
-          <button type="button" onClick={chargerSuivant} className="pointer-events-auto sphere-icon-control" aria-label="Appeler le nouveau suivant">
+          <button type="button" onClick={chargerSuivant} className="pointer-events-auto sphere-icon-control sphere-icon-control--primary" aria-label="Appeler le nouveau suivant">
             <span className="material-symbols-outlined text-2xl">arrow_forward</span>
             <span className="font-label-md text-sm font-black uppercase tracking-wider">Nouveau suivant</span>
           </button>

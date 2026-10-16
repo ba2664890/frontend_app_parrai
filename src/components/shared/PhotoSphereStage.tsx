@@ -1,8 +1,9 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Billboard, Image, OrbitControls, Sparkles, Stars, Text, useTexture } from "@react-three/drei";
-import { useEffect, useMemo, useRef } from "react";
+import { Billboard, Image, Line, OrbitControls, Sparkles, Stars, Text, useTexture } from "@react-three/drei";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import type { Etudiant, PortraitEtudiant } from "@/lib/types";
+import QRCode from "qrcode";
+import { nomComplet, type Etudiant, type PortraitEtudiant, type TirageResult } from "@/lib/types";
 
 export type SphereDrawPhase = "idle" | "rolling" | "settling" | "revealing" | "complete";
 
@@ -162,6 +163,57 @@ function WinnerPortrait({ winner, tone, side, level, revealProgress }: { winner:
   );
 }
 
+function WinnerConnection() {
+  return (
+    <group>
+      <Line points={[[-1.36, 0, 1.68], [1.36, 0, 1.68]]} color="#FFD800" lineWidth={2.2} transparent opacity={0.9} />
+      <mesh position={[0, 0, 1.68]}>
+        <sphereGeometry args={[0.09, 20, 20]} />
+        <meshBasicMaterial color="#FFD800" />
+      </mesh>
+    </group>
+  );
+}
+
+function FamilyQrCode({ tirage }: { tirage: TirageResult }) {
+  const [qrCode, setQrCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    const contact = (label: string, person: Etudiant) => [
+      `${label}: ${nomComplet(person)}`,
+      person.telephone ? `Téléphone: ${person.telephone}` : null,
+      person.email ? `Email: ${person.email}` : null,
+    ].filter(Boolean).join("\n");
+    const details = [
+      "AMSEN — FAMILLE DE PARRAINAGE",
+      contact("Filleul", tirage.filleul),
+      "",
+      contact("Parrain 2e année", tirage.parrain2),
+      "",
+      contact("Parrain 3e année", tirage.parrain3),
+    ].join("\n");
+    let cancelled = false;
+    QRCode.toDataURL(details, { errorCorrectionLevel: "M", margin: 1, width: 320, color: { dark: "#1A1A1A", light: "#FFFFFF" } })
+      .then((url) => { if (!cancelled) setQrCode(url); })
+      .catch(() => { if (!cancelled) setQrCode(null); });
+    return () => { cancelled = true; };
+  }, [tirage]);
+
+  if (!qrCode) return null;
+  return (
+    <Billboard follow position={[0, -2.15, 1.5]}>
+      <mesh position={[0, 0, -0.02]}>
+        <planeGeometry args={[1.08, 1.08]} />
+        <meshBasicMaterial color="#FFFFFF" />
+      </mesh>
+      <Image url={qrCode} scale={[0.92, 0.92]} position={[0, 0, 0.01]} toneMapped={false} />
+      <Text position={[0, -0.68, 0.03]} fontSize={0.14} color="#1F7A3A" anchorX="center" anchorY="middle" outlineWidth={0.005} outlineColor="#FFFFFF">
+        FAMILLE AMSEN
+      </Text>
+    </Billboard>
+  );
+}
+
 function MentorSphere({
   portraits,
   winner,
@@ -227,7 +279,7 @@ function CameraMotion({ phase }: { phase: SphereDrawPhase }) {
   return null;
 }
 
-function SphereScene({ portraits, winner2, winner3, phase, showMentorSpheres, revealProgress }: { portraits: PortraitEtudiant[]; winner2: Etudiant | null; winner3: Etudiant | null; phase: SphereDrawPhase; showMentorSpheres: boolean; revealProgress: number }) {
+function SphereScene({ portraits, winner2, winner3, phase, showMentorSpheres, revealProgress, family }: { portraits: PortraitEtudiant[]; winner2: Etudiant | null; winner3: Etudiant | null; phase: SphereDrawPhase; showMentorSpheres: boolean; revealProgress: number; family: TirageResult | null }) {
   const level2 = portraits.filter((portrait) => portrait.niveau === 2);
   const level3 = portraits.filter((portrait) => portrait.niveau === 3);
   return (
@@ -241,6 +293,8 @@ function SphereScene({ portraits, winner2, winner3, phase, showMentorSpheres, re
         <MentorSphere portraits={level2} winner={winner2} level={2} phase={phase} position={[-2.3, 0, 0]} revealProgress={revealProgress} />
         <MentorSphere portraits={level3} winner={winner3} level={3} phase={phase} position={[2.3, 0, 0]} revealProgress={revealProgress} />
       </>}
+      {(phase === "revealing" || phase === "complete") && winner2 && winner3 && <WinnerConnection />}
+      {phase === "complete" && family && <FamilyQrCode tirage={family} />}
       <CameraMotion phase={phase} />
       <OrbitControls enablePan={false} enableDamping dampingFactor={0.06} minDistance={7} maxDistance={15} />
     </>
@@ -254,6 +308,7 @@ export function PhotoSphereStage({
   phase,
   showMentorSpheres = true,
   revealProgress = 0,
+  family = null,
 }: {
   portraits: PortraitEtudiant[];
   winner2: Etudiant | null;
@@ -261,6 +316,7 @@ export function PhotoSphereStage({
   phase: SphereDrawPhase;
   showMentorSpheres?: boolean;
   revealProgress?: number;
+  family?: TirageResult | null;
 }) {
   return (
     <Canvas
@@ -270,7 +326,7 @@ export function PhotoSphereStage({
       camera={{ position: [0, 0, 11.6], fov: 42 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
     >
-      <SphereScene portraits={portraits} winner2={winner2} winner3={winner3} phase={phase} showMentorSpheres={showMentorSpheres} revealProgress={revealProgress} />
+      <SphereScene portraits={portraits} winner2={winner2} winner3={winner3} phase={phase} showMentorSpheres={showMentorSpheres} revealProgress={revealProgress} family={family} />
     </Canvas>
   );
 }

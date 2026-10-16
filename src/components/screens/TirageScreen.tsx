@@ -182,6 +182,7 @@ export function TirageScreen() {
           phase={scenePhase}
           showMentorSpheres={showMentorSpheres}
           revealProgress={revealProgress}
+          family={tirage}
         />
       </Suspense>
 

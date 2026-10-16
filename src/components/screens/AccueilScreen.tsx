@@ -19,6 +19,7 @@ export function AccueilScreen() {
   const filiereActive = useAppStore((s) => s.filiereActive);
   const setView = useAppStore((s) => s.setView);
   const setCurrentNouveau = useAppStore((s) => s.setCurrentNouveau);
+  const currentNouveau = useAppStore((s) => s.currentNouveau);
   const currentTirage = useAppStore((s) => s.currentTirage);
   const setCurrentTirage = useAppStore((s) => s.setCurrentTirage);
 
@@ -67,7 +68,7 @@ export function AccueilScreen() {
     setLoading(true);
     try {
       await api.changerFiliere(filiere);
-      const { nouveau } = await api.prochainNouveau(filiere);
+      const { nouveau } = await api.prochainNouveau(filiere, currentNouveau?.id);
       if (nouveau) {
         setCurrentNouveau(nouveau);
         setView("tirage");

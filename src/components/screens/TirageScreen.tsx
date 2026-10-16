@@ -12,6 +12,7 @@ import { AmsenLogo } from "@/components/shared/AmsenLogo";
 import { FILIERE_COULEUR, FILIERE_LIBELLE, initiales, nomComplet, type Etudiant, type TirageResult } from "@/lib/types";
 
 const DRAW_ANIMATION_DURATION_MS = 3000;
+const REVEAL_MODE = "cartes" as const;
 
 // Pool de noms pour l'effet roulette (spectacle visuel)
 const ROULETTE_POOL = [
@@ -118,7 +119,7 @@ export function TirageScreen() {
     setShowResult(false);
     setCurrentTirage(null);
     try {
-      const { nouveau } = await api.prochainNouveau(filiereActive);
+      const { nouveau } = await api.prochainNouveau(filiereActive, currentNouveau?.id);
       setCurrentNouveau(nouveau);
       if (!nouveau) setError("Aucun nouveau restant dans cette filière.");
     } catch (e) {
@@ -224,7 +225,7 @@ export function TirageScreen() {
         <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center gap-6 bg-encre-text/90 p-space-md text-center backdrop-blur-md" role="status" aria-live="polite">
           <div>
             <span className="font-label-lg text-label-lg font-bold uppercase tracking-[0.3em] text-jaune-soleil">
-              Tirage · {stats?.modeAnimation ?? "cartes"}
+              Révélation du binôme
             </span>
             <h2 className="mt-2 font-headline text-headline-xl font-black uppercase text-white">
               Les parrains se révèlent
@@ -251,7 +252,7 @@ export function TirageScreen() {
                 </div>
               </div>
             ))}
-            <ModeRevealOverlay mode={stats?.modeAnimation ?? "cartes"} progress={drawProgress} />
+            <ModeRevealOverlay mode={REVEAL_MODE} progress={drawProgress} />
           </div>
 
           <div className="w-[min(80vw,480px)]">

@@ -17,19 +17,11 @@ import {
 } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
 
-const MODES = [
-  { id: "cartes", label: "Cartes mystères", icon: "style" },
-  { id: "roulette", label: "Roulette", icon: "casino" },
-  { id: "coffre", label: "Coffre-fort", icon: "lock" },
-  { id: "constellation", label: "Constellation", icon: "auto_awesome" },
-  { id: "des", label: "Dés du hasard", icon: "dice_5" },
-];
-
-
 export function PiloteScreen() {
   const stats = useAppStore((s) => s.stats);
   const setStats = useAppStore((s) => s.setStats);
   const setCurrentNouveau = useAppStore((s) => s.setCurrentNouveau);
+  const currentNouveau = useAppStore((s) => s.currentNouveau);
   const setView = useAppStore((s) => s.setView);
   const socketConnected = useAppStore((s) => s.socketConnected);
   const modeTest = useAppStore((s) => s.modeTest);
@@ -170,7 +162,7 @@ export function PiloteScreen() {
       return;
     }
     try {
-      const { nouveau } = await api.prochainNouveau(targetFiliere);
+      const { nouveau } = await api.prochainNouveau(targetFiliere, currentNouveau?.id);
       if (nouveau) {
         setSelectedFiliere(targetFiliere);
         setCurrentNouveau(nouveau);
@@ -183,17 +175,6 @@ export function PiloteScreen() {
       toast({ title: "Appel impossible", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
     }
   };
-
-  const handleMode = async (mode: string) => {
-    try {
-      await api.changerMode(mode);
-      toast({ title: `Mode : ${MODES.find((m) => m.id === mode)?.label}` });
-      await refresh();
-    } catch (e) {
-      toast({ title: "Changement impossible", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
-    }
-  };
-
 
   const handleImport = async () => {
     if (!csv.trim()) {
@@ -465,29 +446,6 @@ export function PiloteScreen() {
                     <span className="material-symbols-outlined text-[18px]">person_play</span>
                     {selectedFiliere ? `Appeler le prochain · ${selectedFiliere}` : "Appeler le prochain"}
                   </button>
-                </div>
-              </div>
-
-              <div>
-                <span className="font-label-md text-label-md text-on-surface-variant font-semibold uppercase tracking-wide">
-                  Mode d&apos;animation
-                </span>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-2">
-                  {MODES.map((m) => {
-                    const active = (stats?.modeAnimation ?? "cartes") === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => void handleMode(m.id)}
-                        disabled={!hasEvent || busy}
-                        className={"flex flex-col items-center gap-1 px-2 py-space-sm rounded-xl font-label-md text-label-md transition-all " + (active ? "bg-vert-teranga text-blanc-pure shadow-md" : "bg-surface-container-low hover:bg-surface-container text-on-surface")}
-                      >
-                        <span className="material-symbols-outlined text-[22px]">{m.icon}</span>
-                        <span className="text-center leading-tight">{m.label}</span>
-                      </button>
-                    );
-                  })}
                 </div>
               </div>
 

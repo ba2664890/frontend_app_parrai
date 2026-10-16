@@ -33,7 +33,10 @@ export const api = {
     );
   },
 
-  async prochainNouveau(filiere?: string, excludeId?: string): Promise<{ nouveau: Etudiant | null }> {
+  async prochainNouveau(
+    filiere?: string,
+    excludeId?: string,
+  ): Promise<{ nouveau: Etudiant | null; raison?: "absents_restants" | "filiere_terminee" | null }> {
     return json(
       await fetch(`${BASE}/tirage/prochain/`, {
         method: "POST",

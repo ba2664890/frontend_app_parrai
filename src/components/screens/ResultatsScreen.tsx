@@ -34,6 +34,8 @@ export function ResultatsScreen() {
   const [revealed3, setRevealed3] = useState(false);
   const [loadingNext, setLoadingNext] = useState(false);
   const [nextError, setNextError] = useState<string | null>(null);
+  const [nextMessage, setNextMessage] = useState<string | null>(null);
+  const [nextReason, setNextReason] = useState<"absents_restants" | "filiere_terminee" | null>(null);
 
   const parrain = mentorIdx === 0 ? tirage?.parrain2 : tirage?.parrain3;
   const niveau = mentorIdx === 0 ? 2 : 3;
@@ -48,18 +50,28 @@ export function ResultatsScreen() {
 
     setLoadingNext(true);
     setNextError(null);
+    setNextMessage(null);
+    setNextReason(null);
     try {
-      const { nouveau } = await api.prochainNouveau(
+      const { nouveau, raison } = await api.prochainNouveau(
         tirage.filleul.filiereCode,
         tirage.filleul.id,
       );
-      setCurrentNouveau(nouveau);
-      setCurrentTirage(null);
-      setDrawAnimation(null);
       if (!nouveau) {
         const latestStats = await api.stats();
         setStats(latestStats);
+        setNextReason(raison ?? "filiere_terminee");
+        setNextMessage(
+          raison === "absents_restants"
+            ? "Aucun nouveau présent n’est disponible dans cette filière : les nouveaux non parrainés restants sont marqués absents."
+            : "Tous les nouveaux présents de cette filière sont parrainés.",
+        );
+        return;
       }
+
+      setCurrentNouveau(nouveau);
+      setCurrentTirage(null);
+      setDrawAnimation(null);
       setView("tirage");
     } catch (error) {
       setNextError(error instanceof Error ? error.message : "Impossible d’appeler le nouveau suivant.");
@@ -174,10 +186,20 @@ export function ResultatsScreen() {
           bothRevealed={bothRevealed}
           isFirst={mentorIdx === 0}
           nextDisabled={loadingNext}
+          nextLabel={nextReason === "filiere_terminee" ? "Filière terminée" : nextReason === "absents_restants" ? "Réessayer" : undefined}
+          nextUnavailable={nextReason === "filiere_terminee"}
         />
 
         {/* Carte Famille (quand les 2 parrains sont révélés) */}
         {bothRevealed && <FamilyCard tirage={tirage} />}
+        {nextMessage && (
+          <div
+            className="rounded-xl border border-vert-teranga/20 bg-vert-teranga/10 px-space-md py-space-sm text-center font-label-lg text-label-lg font-semibold text-vert-teranga"
+            role="status"
+          >
+            {nextMessage}
+          </div>
+        )}
         {nextError && (
           <p className="text-center font-label-md text-label-md font-semibold text-rouge-laterite" role="alert">
             {nextError}
@@ -202,6 +224,8 @@ function ParrainReveal({
   bothRevealed,
   isFirst,
   nextDisabled,
+  nextLabel,
+  nextUnavailable,
 }: {
   parrain: Etudiant;
   niveau: number;
@@ -211,6 +235,8 @@ function ParrainReveal({
   bothRevealed: boolean;
   isFirst: boolean;
   nextDisabled: boolean;
+  nextLabel?: string;
+  nextUnavailable: boolean;
 }) {
   // Progression du défloutage : 0 → 1 sur 3 secondes (démarrage automatique)
   const [progress, setProgress] = useState(0);
@@ -411,7 +437,7 @@ function ParrainReveal({
             </button>
             <button
               onClick={onNext}
-              disabled={nextDisabled || (!isFirst && !bothRevealed)}
+              disabled={nextDisabled || nextUnavailable || (!isFirst && !bothRevealed)}
               className="flex items-center gap-space-xs px-space-lg py-space-sm rounded-full bg-encre-text hover:bg-inverse-surface text-blanc-pure font-label-lg text-label-lg transition-transform active:scale-95 shadow-md"
             >
               <span>
@@ -420,7 +446,7 @@ function ParrainReveal({
                   : bothRevealed
                   ? nextDisabled
                     ? "Chargement…"
-                    : "Nouveau suivant"
+                    : nextLabel ?? "Nouveau suivant"
                   : "Voir carte Famille"}
               </span>
               <span className="material-symbols-outlined">arrow_forward</span>

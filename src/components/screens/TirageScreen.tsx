@@ -375,29 +375,7 @@ export function TirageScreen() {
             <p className="mt-space-sm font-label-md text-label-md text-rouge-laterite font-semibold">{error}</p>
           )}
 
-          {/* Carte résultat (apparaît après le clic) */}
-          {showResult && (
-            <div className="w-full max-w-4xl bg-surface-container-lowest rounded-3xl p-space-lg shadow-2xl mt-4 mb-2 animate-[float-slow_0.6s_ease-out]">
-              <div className="flex items-center justify-between pb-space-sm">
-                <div className="flex items-center gap-space-sm">
-                  <span className="w-3.5 h-3.5 rounded-full bg-vert-teranga animate-pulse" />
-                  <span className="font-headline text-headline-sm font-black uppercase text-on-surface">
-                    Binôme révélé !
-                  </span>
-                </div>
-                <span
-                  className="font-label-md text-label-md uppercase px-space-sm py-1 rounded-full font-bold"
-                  style={{ background: filiereColor, color: currentNouveau.filiereCode === "ISE_ECO" ? "#1a1a1a" : "#fff" }}
-                >
-                  {FILIERE_LIBELLE[currentNouveau.filiereCode]} · Promo 2025
-                </span>
-              </div>
-              <p className="font-body text-body-md text-on-surface-variant text-center mb-space-sm">
-                Redirection vers la cérémonie de révélation…
-              </p>
-            </div>
-          )}
-        </div>
+
 
         {/* Barre de contrôle animateur */}
         <div className="w-full pt-space-xs flex flex-wrap items-center justify-between gap-space-sm">

@@ -143,7 +143,7 @@ function CameraMotion({ phase }: { phase: SphereDrawPhase }) {
   return null;
 }
 
-function SphereScene({ portraits, winner2, winner3, phase }: { portraits: PortraitEtudiant[]; winner2: Etudiant | null; winner3: Etudiant | null; phase: SphereDrawPhase }) {
+function SphereScene({ portraits, winner2, winner3, phase, showMentorSpheres }: { portraits: PortraitEtudiant[]; winner2: Etudiant | null; winner3: Etudiant | null; phase: SphereDrawPhase; showMentorSpheres: boolean }) {
   const level2 = portraits.filter((portrait) => portrait.niveau === 2);
   const level3 = portraits.filter((portrait) => portrait.niveau === 3);
   return (
@@ -155,8 +155,10 @@ function SphereScene({ portraits, winner2, winner3, phase }: { portraits: Portra
       <directionalLight position={[-5, -3, 4]} color="#FFD800" intensity={1.8} />
       <Stars radius={28} depth={16} count={260} factor={2} saturation={0} fade speed={phase === "rolling" ? 1.5 : 0.25} />
       <Sparkles count={90} scale={[13, 8, 4]} size={1.6} speed={phase === "rolling" ? 1.8 : 0.25} color="#FFD800" />
-      <MentorSphere portraits={level2} winner={winner2} level={2} phase={phase} position={[-2.3, 0, 0]} />
-      <MentorSphere portraits={level3} winner={winner3} level={3} phase={phase} position={[2.3, 0, 0]} />
+      {showMentorSpheres && <>
+        <MentorSphere portraits={level2} winner={winner2} level={2} phase={phase} position={[-2.3, 0, 0]} />
+        <MentorSphere portraits={level3} winner={winner3} level={3} phase={phase} position={[2.3, 0, 0]} />
+      </>}
       <CameraMotion phase={phase} />
       <OrbitControls enablePan={false} enableDamping dampingFactor={0.06} minDistance={7} maxDistance={15} />
     </>
@@ -168,11 +170,13 @@ export function PhotoSphereStage({
   winner2,
   winner3,
   phase,
+  showMentorSpheres = true,
 }: {
   portraits: PortraitEtudiant[];
   winner2: Etudiant | null;
   winner3: Etudiant | null;
   phase: SphereDrawPhase;
+  showMentorSpheres?: boolean;
 }) {
   return (
     <Canvas
@@ -182,7 +186,7 @@ export function PhotoSphereStage({
       camera={{ position: [0, 0, 11.6], fov: 42 }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
     >
-      <SphereScene portraits={portraits} winner2={winner2} winner3={winner3} phase={phase} />
+      <SphereScene portraits={portraits} winner2={winner2} winner3={winner3} phase={phase} showMentorSpheres={showMentorSpheres} />
     </Canvas>
   );
 }

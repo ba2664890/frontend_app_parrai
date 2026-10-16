@@ -3,7 +3,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { api } from "@/lib/api";
 import { spawnConfetti } from "@/components/shared/Confetti";
 import type { SphereDrawPhase } from "@/components/shared/PhotoSphereStage";
-import type { PortraitEtudiant, TirageResult } from "@/lib/types";
+import { FILIERE_COULEUR, FILIERE_LIBELLE, initiales, nomComplet, type Etudiant, type PortraitEtudiant, type TirageResult } from "@/lib/types";
 
 // Three.js ne rejoint le navigateur qu'à l'ouverture de la scène cérémonie.
 const PhotoSphereStage = lazy(() => import("@/components/shared/PhotoSphereStage").then((module) => ({ default: module.PhotoSphereStage })));
@@ -13,6 +13,25 @@ type DrawState = "idle" | "rolling" | "settling" | "revealing" | "complete" | "e
 const MIN_ROLL_DURATION_MS = 2800;
 const SETTLING_DURATION_MS = 2200;
 const REVEAL_DURATION_MS = 3100;
+
+function NouveauOnStage({ nouveau }: { nouveau: Etudiant }) {
+  const color = FILIERE_COULEUR[nouveau.filiereCode] ?? "#1F7A3A";
+  return (
+    <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-space-md pb-24">
+      <article className="newcomer-stage-card pointer-events-auto flex w-full max-w-sm flex-col items-center rounded-[28px] border border-blanc-pure bg-surface-container-lowest/95 p-space-md text-center shadow-[0_28px_70px_-28px_rgba(31,122,58,.48)] backdrop-blur-xl">
+        <span className="mb-3 rounded-full px-4 py-1.5 font-label-md text-xs font-black uppercase tracking-[0.18em]" style={{ background: color, color: nouveau.filiereCode === "ISE_ECO" ? "#1a1a1a" : "#fff" }}>
+          Nouveau sur scène
+        </span>
+        <div className="newcomer-stage-avatar overflow-hidden rounded-full border-4 border-blanc-pure shadow-xl" style={{ background: color }}>
+          {nouveau.photo ? <img src={nouveau.photo} alt={nomComplet(nouveau)} className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center font-headline text-3xl font-black tracking-wider text-blanc-pure">{initiales(nouveau.prenom, nouveau.nom)}</span>}
+        </div>
+        <h1 className="mt-4 font-headline text-[clamp(2rem,4vw,3rem)] font-black uppercase leading-none tracking-tight text-on-surface">{nomComplet(nouveau)}</h1>
+        <p className="mt-2 font-label-md text-sm font-bold uppercase tracking-wider text-on-surface-variant">{FILIERE_LIBELLE[nouveau.filiereCode]} · 1re année</p>
+        <div className="mt-5 flex h-1.5 w-32 overflow-hidden rounded-full"><span className="flex-1 bg-vert-teranga" /><span className="flex-1 bg-jaune-soleil" /><span className="flex-1 bg-rouge-laterite" /></div>
+      </article>
+    </div>
+  );
+}
 
 /**
  * Scène de cérémonie intégrée à l'habillage AMSEN. L'animation est centrale,
@@ -133,6 +152,7 @@ export function TirageScreen() {
         : "idle";
   const winnersVisible = drawState === "settling" || drawState === "revealing" || drawState === "complete";
   const canStart = drawState === "idle" || drawState === "error";
+  const showMentorSpheres = drawState === "rolling" || winnersVisible;
 
   return (
     <section className="draw-sphere-screen relative min-h-[calc(100vh-5rem-3.5rem)] w-full overflow-hidden" aria-label="Scène de tirage en sphères 3D">
@@ -142,8 +162,11 @@ export function TirageScreen() {
           winner2={winnersVisible ? tirage?.parrain2 ?? null : null}
           winner3={winnersVisible ? tirage?.parrain3 ?? null : null}
           phase={scenePhase}
+          showMentorSpheres={showMentorSpheres}
         />
       </Suspense>
+
+      {currentNouveau && canStart && <NouveauOnStage nouveau={currentNouveau} />}
 
       <div className="pointer-events-none absolute inset-x-0 bottom-8 z-10 flex items-center justify-center gap-5">
         {canStart && currentNouveau && (

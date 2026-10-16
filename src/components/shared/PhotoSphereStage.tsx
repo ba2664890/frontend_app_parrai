@@ -166,10 +166,10 @@ function WinnerPortrait({ winner, tone, side, level, revealProgress }: { winner:
 function WinnerConnection() {
   return (
     <group>
-      <Line points={[[-1.36, 0, 1.68], [1.36, 0, 1.68]]} color="#FFD800" lineWidth={2.2} transparent opacity={0.9} />
+      <Line points={[[-1.36, 0, 1.68], [1.36, 0, 1.68]]} color="#171717" lineWidth={2.2} transparent opacity={0.94} />
       <mesh position={[0, 0, 1.68]}>
         <sphereGeometry args={[0.09, 20, 20]} />
-        <meshBasicMaterial color="#FFD800" />
+        <meshBasicMaterial color="#171717" />
       </mesh>
     </group>
   );
@@ -201,7 +201,7 @@ function FamilyQrCode({ tirage }: { tirage: TirageResult }) {
 
   if (!qrCode) return null;
   return (
-    <Billboard follow position={[0, -2.15, 1.5]}>
+    <Billboard follow position={[0, -1.8, 1.5]}>
       <mesh position={[0, 0, -0.02]}>
         <planeGeometry args={[1.08, 1.08]} />
         <meshBasicMaterial color="#FFFFFF" />

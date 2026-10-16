@@ -7,6 +7,8 @@ interface FinishedModalProps {
   onOpenChange: (open: boolean) => void;
   filiere: string;
   isAllFinished?: boolean;
+  reason?: "absents_restants" | "filiere_terminee" | null;
+  autoRedirect?: boolean;
   onViewResults: () => void;
   onGoToPilote: () => void;
 }
@@ -16,6 +18,8 @@ export function FinishedModal({
   onOpenChange,
   filiere,
   isAllFinished = false,
+  reason = null,
+  autoRedirect = false,
   onViewResults,
   onGoToPilote,
 }: FinishedModalProps) {
@@ -51,9 +55,17 @@ export function FinishedModal({
           <DialogDescription className="font-body text-body-md text-on-surface-variant max-w-sm mx-auto text-center mt-2">
             {isAllFinished
               ? "Toutes les filières ont terminé leurs tirages ! Félicitations à toute la promotion et aux parrains."
+              : reason === "absents_restants"
+                ? `Les nouveaux restants de la filière ${filiere} sont tous marqués absents. La cérémonie peut continuer avec une autre filière.`
               : `Tous les étudiants de la filière ${filiere} ont reçu leurs parrains. Vous pouvez passer à la filière suivante ou admirer les résultats.`}
           </DialogDescription>
         </DialogHeader>
+
+        {autoRedirect && (
+          <p className="rounded-full bg-surface-container-low px-4 py-2 font-label-md text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+            Retour à l’accueil dans quelques instants
+          </p>
+        )}
 
         {/* Boutons d'action */}
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full mt-6">

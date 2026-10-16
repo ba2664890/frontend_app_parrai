@@ -3,6 +3,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { api } from "@/lib/api";
 import { spawnConfetti } from "@/components/shared/Confetti";
 import { StageBackground } from "@/components/shared/StageBackground";
+import { FinishedModal } from "@/components/shared/FinishedModal";
 import type { SphereDrawPhase } from "@/components/shared/PhotoSphereStage";
 import { FILIERE_COULEUR, FILIERE_LIBELLE, initiales, nomComplet, type Etudiant, type PortraitEtudiant, type TirageResult } from "@/lib/types";
 
@@ -10,6 +11,10 @@ import { FILIERE_COULEUR, FILIERE_LIBELLE, initiales, nomComplet, type Etudiant,
 const PhotoSphereStage = lazy(() => import("@/components/shared/PhotoSphereStage").then((module) => ({ default: module.PhotoSphereStage })));
 
 type DrawState = "idle" | "rolling" | "settling" | "revealing" | "complete" | "error";
+type CompletionState = {
+  reason: "absents_restants" | "filiere_terminee" | null;
+  isAllFinished: boolean;
+};
 
 const MIN_ROLL_DURATION_MS = 2800;
 const SETTLING_DURATION_MS = 2200;
@@ -44,12 +49,16 @@ export function TirageScreen() {
   const setCurrentTirage = useAppStore((s) => s.setCurrentTirage);
   const setDrawAnimation = useAppStore((s) => s.setDrawAnimation);
   const setLocalDrawInProgress = useAppStore((s) => s.setLocalDrawInProgress);
+  const setStats = useAppStore((s) => s.setStats);
+  const setView = useAppStore((s) => s.setView);
   const filiereActive = useAppStore((s) => s.filiereActive);
 
   const [drawState, setDrawState] = useState<DrawState>("idle");
   const [portraits, setPortraits] = useState<PortraitEtudiant[]>([]);
   const [tirage, setTirage] = useState<TirageResult | null>(null);
   const [revealProgress, setRevealProgress] = useState(0);
+  const [completion, setCompletion] = useState<CompletionState | null>(null);
+  const [loadingNext, setLoadingNext] = useState(false);
   const drawLockRef = useRef(false);
   const timersRef = useRef<number[]>([]);
 
@@ -59,6 +68,14 @@ export function TirageScreen() {
   };
 
   useEffect(() => () => clearTimers(), []);
+
+  // Une fin de filière reste visible assez longtemps pour l'animateur, puis
+  // ramène naturellement l'affichage à l'accueil.
+  useEffect(() => {
+    if (!completion) return;
+    const redirectTimer = window.setTimeout(() => setView("accueil"), 5000);
+    return () => window.clearTimeout(redirectTimer);
+  }, [completion, setView]);
 
   // Cette requête est strictement une lecture des portraits publics de la filière.
   useEffect(() => {
@@ -134,16 +151,35 @@ export function TirageScreen() {
     return () => window.clearInterval(interval);
   }, [drawState, setLocalDrawInProgress]);
 
-  const chargerSuivant = async () => {
-    if (currentNouveau && drawState !== "complete") return;
+  const terminerFiliere = async (reason: CompletionState["reason"]) => {
+    setCurrentNouveau(null);
+    setDrawAnimation(null);
     try {
-      const { nouveau } = await api.prochainNouveau(filiereActive, currentNouveau?.id);
+      const latestStats = await api.stats();
+      setStats(latestStats);
+      setCompletion({
+        reason,
+        isAllFinished: latestStats.totalRestants === 0 && latestStats.totalNouveaux > 0,
+      });
+    } catch {
+      // Le message de fin reste utile même si le rafraîchissement des compteurs échoue.
+      setCompletion({ reason, isAllFinished: false });
+    }
+  };
+
+  const chargerSuivant = async () => {
+    if (loadingNext || completion || (currentNouveau && drawState !== "complete")) return;
+    setLoadingNext(true);
+    try {
+      const { nouveau, raison } = await api.prochainNouveau(filiereActive, currentNouveau?.id);
       setCurrentTirage(null);
       setDrawAnimation(null);
       setCurrentNouveau(nouveau);
-      if (!nouveau) setDrawState("error");
+      if (!nouveau) await terminerFiliere(raison ?? "filiere_terminee");
     } catch {
       setDrawState("error");
+    } finally {
+      setLoadingNext(false);
     }
   };
 
@@ -152,9 +188,9 @@ export function TirageScreen() {
     try {
       await api.marquerAbsent(currentNouveau.id, true);
       // L'appel est ici volontairement manuel, jamais exécuté après une erreur de tirage.
-      const { nouveau } = await api.prochainNouveau(filiereActive, currentNouveau.id);
+      const { nouveau, raison } = await api.prochainNouveau(filiereActive, currentNouveau.id);
       setCurrentNouveau(nouveau);
-      if (!nouveau) setDrawState("error");
+      if (!nouveau) await terminerFiliere(raison ?? "absents_restants");
     } catch {
       setDrawState("error");
     }
@@ -174,6 +210,27 @@ export function TirageScreen() {
   return (
     <section className="draw-sphere-screen relative min-h-[calc(100vh-5rem-3.5rem)] w-full overflow-hidden" aria-label="Scène de tirage en sphères 3D">
       <StageBackground variant="festive" />
+      <FinishedModal
+        open={Boolean(completion)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCompletion(null);
+            setView("accueil");
+          }
+        }}
+        filiere={filiereActive}
+        isAllFinished={completion?.isAllFinished}
+        reason={completion?.reason}
+        autoRedirect
+        onViewResults={() => {
+          setCompletion(null);
+          setView("resultats");
+        }}
+        onGoToPilote={() => {
+          setCompletion(null);
+          setView("pilote");
+        }}
+      />
       <Suspense fallback={<div className="absolute inset-0 grid place-items-center"><span className="h-28 w-28 animate-ping rounded-full border border-violet-300/60 shadow-[0_0_70px_rgba(139,92,246,.9)]" /></div>}>
         <PhotoSphereStage
           portraits={portraits}
@@ -206,16 +263,16 @@ export function TirageScreen() {
             <span className="font-label-md text-sm font-black uppercase tracking-wider">Absent</span>
           </button>
         )}
-        {!currentNouveau && (
-          <button type="button" onClick={chargerSuivant} className={"pointer-events-auto sphere-icon-control sphere-icon-control--primary " + (drawState === "error" ? "sphere-icon-control--alert" : "")} aria-label="Appeler le nouveau suivant">
+        {!currentNouveau && !completion && (
+          <button type="button" onClick={chargerSuivant} disabled={loadingNext} className={"pointer-events-auto sphere-icon-control sphere-icon-control--primary disabled:cursor-wait disabled:opacity-60 " + (drawState === "error" ? "sphere-icon-control--alert" : "")} aria-label="Appeler le nouveau suivant">
             <span className="material-symbols-outlined text-2xl">play_arrow</span>
-            <span className="font-label-md text-sm font-black uppercase tracking-wider">Nouveau suivant</span>
+            <span className="font-label-md text-sm font-black uppercase tracking-wider">{loadingNext ? "Recherche…" : "Nouveau suivant"}</span>
           </button>
         )}
-        {drawState === "complete" && (
-          <button type="button" onClick={chargerSuivant} className="pointer-events-auto sphere-icon-control sphere-icon-control--primary" aria-label="Appeler le nouveau suivant">
+        {drawState === "complete" && !completion && (
+          <button type="button" onClick={chargerSuivant} disabled={loadingNext} className="pointer-events-auto sphere-icon-control sphere-icon-control--primary disabled:cursor-wait disabled:opacity-60" aria-label="Appeler le nouveau suivant">
             <span className="material-symbols-outlined text-2xl">arrow_forward</span>
-            <span className="font-label-md text-sm font-black uppercase tracking-wider">Nouveau suivant</span>
+            <span className="font-label-md text-sm font-black uppercase tracking-wider">{loadingNext ? "Recherche…" : "Nouveau suivant"}</span>
           </button>
         )}
       </div>

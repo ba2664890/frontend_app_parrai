@@ -135,7 +135,7 @@ export function TirageScreen() {
   const canStart = drawState === "idle" || drawState === "error";
 
   return (
-    <section className="draw-sphere-screen relative min-h-screen w-full overflow-hidden" aria-label="Scène de tirage en sphères 3D">
+    <section className="draw-sphere-screen relative h-[100dvh] min-h-screen w-full overflow-hidden" aria-label="Scène de tirage en sphères 3D">
       <Suspense fallback={<div className="absolute inset-0 grid place-items-center"><span className="h-28 w-28 animate-ping rounded-full border border-violet-300/60 shadow-[0_0_70px_rgba(139,92,246,.9)]" /></div>}>
         <PhotoSphereStage
           portraits={portraits}

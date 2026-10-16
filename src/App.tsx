@@ -26,18 +26,15 @@ function Screens() {
 }
 
 function AppInner() {
-  const view = useAppStore((s) => s.view);
-  const isCeremonyScene = view === "tirage";
-
   return (
     <>
       <RealtimeSync />
       <div className="min-h-screen flex flex-col bg-blanc-pure">
-        {!isCeremonyScene && <StageHeader />}
-        <main className={"w-full flex-1 " + (isCeremonyScene ? "bg-surface" : "pt-20 bg-blanc-pure")}>
+        <StageHeader />
+        <main className="w-full flex-1 pt-20 bg-blanc-pure">
           <Screens />
         </main>
-        {!isCeremonyScene && <StageFooter />}
+        <StageFooter />
       </div>
       <Toaster />
     </>

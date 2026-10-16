@@ -15,8 +15,8 @@ const SETTLING_DURATION_MS = 2200;
 const REVEAL_DURATION_MS = 3100;
 
 /**
- * Scène de cérémonie plein écran. Tous les retours textuels sont volontairement
- * retirés : l'état est exprimé par les lumières, la vitesse des sphères et les icônes.
+ * Scène de cérémonie intégrée à l'habillage AMSEN. L'animation est centrale,
+ * tandis que les commandes restent explicites pour l'animateur.
  */
 export function TirageScreen() {
   const currentNouveau = useAppStore((s) => s.currentNouveau);
@@ -135,7 +135,7 @@ export function TirageScreen() {
   const canStart = drawState === "idle" || drawState === "error";
 
   return (
-    <section className="draw-sphere-screen relative h-[100dvh] min-h-screen w-full overflow-hidden" aria-label="Scène de tirage en sphères 3D">
+    <section className="draw-sphere-screen relative min-h-[calc(100vh-5rem-3.5rem)] w-full overflow-hidden" aria-label="Scène de tirage en sphères 3D">
       <Suspense fallback={<div className="absolute inset-0 grid place-items-center"><span className="h-28 w-28 animate-ping rounded-full border border-violet-300/60 shadow-[0_0_70px_rgba(139,92,246,.9)]" /></div>}>
         <PhotoSphereStage
           portraits={portraits}
@@ -153,22 +153,26 @@ export function TirageScreen() {
             className={"pointer-events-auto sphere-icon-control " + (drawState === "error" ? "sphere-icon-control--alert" : "")}
             aria-label={drawState === "error" ? "Réessayer le tirage" : "Lancer le tirage"}
           >
-            <span className="material-symbols-outlined text-3xl">{drawState === "error" ? "refresh" : "play_arrow"}</span>
+            <span className="material-symbols-outlined text-2xl">{drawState === "error" ? "refresh" : "play_arrow"}</span>
+            <span className="font-label-md text-sm font-black uppercase tracking-wider">{drawState === "error" ? "Réessayer" : "Découvrir"}</span>
           </button>
         )}
         {canStart && currentNouveau && (
           <button type="button" onClick={marquerAbsent} className="pointer-events-auto sphere-icon-control" aria-label="Marquer le nouveau absent">
             <span className="material-symbols-outlined text-2xl">person_remove</span>
+            <span className="font-label-md text-sm font-black uppercase tracking-wider">Absent</span>
           </button>
         )}
         {!currentNouveau && (
           <button type="button" onClick={chargerSuivant} className={"pointer-events-auto sphere-icon-control " + (drawState === "error" ? "sphere-icon-control--alert" : "")} aria-label="Appeler le nouveau suivant">
-            <span className="material-symbols-outlined text-3xl">play_arrow</span>
+            <span className="material-symbols-outlined text-2xl">play_arrow</span>
+            <span className="font-label-md text-sm font-black uppercase tracking-wider">Nouveau suivant</span>
           </button>
         )}
         {drawState === "complete" && (
           <button type="button" onClick={chargerSuivant} className="pointer-events-auto sphere-icon-control" aria-label="Appeler le nouveau suivant">
-            <span className="material-symbols-outlined text-3xl">arrow_forward</span>
+            <span className="material-symbols-outlined text-2xl">arrow_forward</span>
+            <span className="font-label-md text-sm font-black uppercase tracking-wider">Nouveau suivant</span>
           </button>
         )}
       </div>

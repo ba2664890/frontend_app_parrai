@@ -134,8 +134,8 @@
   background: radial-gradient(circle at center, transparent 48%, rgb(28 27 27 / 9%) 100%);
 }
 .sphere-photo-card {
-  width: 58px;
-  height: 72px;
+  width: 43px;
+  height: 54px;
   overflow: hidden;
   border: 1.5px solid;
   border-radius: 11px;
@@ -149,7 +149,7 @@
 .sphere-photo-fallback { width: 100%; height: 100%; display: grid; place-items: center; }
 .sphere-photo-fallback svg { width: 62%; height: 62%; filter: drop-shadow(0 0 8px rgb(255 255 255 / 42%)); }
 .sphere-winner-card {
-  width: min(18vw, 160px);
+  width: min(15vw, 128px);
   aspect-ratio: 4 / 5;
   overflow: hidden;
   border: 3px solid;
@@ -158,10 +158,12 @@
   transform: translate(-50%, -50%);
 }
 .sphere-icon-control {
-  display: grid;
-  place-items: center;
-  width: 68px;
-  height: 68px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .55rem;
+  min-height: 52px;
+  padding: 0 1.15rem;
   border: 1px solid rgb(255 255 255 / 30%);
   border-radius: 999px;
   color: #1f7a3a;
@@ -175,8 +177,9 @@
 .sphere-icon-control:disabled { opacity: .36; cursor: default; transform: none; }
 .sphere-icon-control--alert { box-shadow: 0 0 0 8px rgb(198 47 36 / 12%), 0 0 30px rgb(198 47 36 / 45%); color: #c62f24; }
 @media (max-width: 640px) {
-  .sphere-photo-card { width: 43px; height: 53px; border-radius: 8px; }
-  .sphere-winner-card { width: min(27vw, 132px); border-radius: 16px; }
+  .sphere-photo-card { width: 34px; height: 43px; border-radius: 8px; }
+  .sphere-winner-card { width: min(23vw, 112px); border-radius: 16px; }
+  .sphere-icon-control { min-height: 46px; padding: 0 .85rem; }
 }
 
 @layer base {

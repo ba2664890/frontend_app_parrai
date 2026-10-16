@@ -19,6 +19,9 @@ interface AppState {
   setCurrentTirage: (t: TirageResult | null) => void;
   drawAnimation: TirageResult | null;
   setDrawAnimation: (t: TirageResult | null) => void;
+  /** Verrou local pour qu'un echo WebSocket ne court-circuite pas la mise en scène. */
+  localDrawInProgress: boolean;
+  setLocalDrawInProgress: (inProgress: boolean) => void;
 
   revealStep2: number;
   revealStep3: number;
@@ -58,6 +61,8 @@ export const useAppStore = create<AppState>((set) => ({
   setCurrentTirage: (t) => set({ currentTirage: t }),
   drawAnimation: null,
   setDrawAnimation: (t) => set({ drawAnimation: t }),
+  localDrawInProgress: false,
+  setLocalDrawInProgress: (inProgress) => set({ localDrawInProgress: inProgress }),
 
   revealStep2: 1,
   revealStep3: 1,

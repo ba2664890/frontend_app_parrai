@@ -71,9 +71,12 @@ export function RealtimeSync() {
         const { tirage } = data as { tirage: TirageResult };
         const state = useAppStore.getState();
 
-        // Le backend diffuse avant de répondre au POST. Le client qui exécute
-        // le tirage doit rester sur Tirage pour jouer son animation; ignorer
-        // aussi les événements retardés d'un ancien filleul.
+        // Le backend diffuse avant de répondre au POST. Le client qui a lancé
+        // le tirage conserve exclusivement sa réponse HTTP pour arrêter les
+        // roulettes, sans être interrompu par son propre echo WebSocket.
+        if (state.localDrawInProgress) return;
+
+        // Ignorer également les événements retardés d'un ancien filleul.
         if (state.currentNouveau?.id !== tirage.filleul.id) return;
 
         setCurrentTirage(tirage);

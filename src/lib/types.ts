@@ -18,6 +18,19 @@ export interface Etudiant {
   tire: boolean;
 }
 
+/**
+ * Données volontairement limitées à l'affichage d'un portrait dans la scène
+ * de tirage. Les coordonnées et les indices restent côté métier.
+ */
+export interface PortraitEtudiant {
+  id: string;
+  nom: string;
+  prenom: string;
+  filiereCode: string;
+  niveau: number;
+  photo: string | null;
+}
+
 export interface Parrainage {
   id: string;
   filleul: Etudiant;

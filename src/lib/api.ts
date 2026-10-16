@@ -1,5 +1,5 @@
 // Client API — appels fetch vers Django REST API /api/*
-import type { StatsGlobales, TirageResult, Etudiant, AuditEntry, Parrainage } from "./types";
+import type { StatsGlobales, TirageResult, Etudiant, AuditEntry, Parrainage, PortraitEtudiant } from "./types";
 
 const BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 
@@ -54,6 +54,15 @@ export const api = {
         body: JSON.stringify({ nouveauId }),
       })
     );
+  },
+
+  /** Liste de portraits de scène, sans données de contact ni indices. */
+  async portraits(filiere: string): Promise<PortraitEtudiant[]> {
+    const params = new URLSearchParams({ filiere });
+    const response = await json<{ portraits: PortraitEtudiant[] }>(
+      await fetch(`${BASE}/portraits/?${params.toString()}`),
+    );
+    return response.portraits;
   },
 
   async annulerTirage(parrainageId: string, motif: string): Promise<{ ok: boolean }> {

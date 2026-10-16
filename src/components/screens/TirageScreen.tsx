@@ -1,145 +1,152 @@
-
-// ÉCRAN 2 — TIRAGE
-// Le nouveau est sur scène. Roulette des noms qui se fige, bouton géant
-// « DÉCOUVRIR » sur lequel il appuie → tirage des 2 parrains → confettis.
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { api } from "@/lib/api";
 import { spawnConfetti } from "@/components/shared/Confetti";
 import { StageBackground } from "@/components/shared/StageBackground";
-import { ModeRevealOverlay } from "@/components/shared/ModeRevealOverlay";
 import { AmsenLogo } from "@/components/shared/AmsenLogo";
-import { FILIERE_COULEUR, FILIERE_LIBELLE, initiales, nomComplet, type Etudiant, type TirageResult } from "@/lib/types";
+import { FamilyCard } from "@/components/shared/FamilyCard";
+import { MentorRevealCard } from "@/components/shared/MentorRevealCard";
+import { PhotoLotteryRoll } from "@/components/shared/PhotoLotteryRoll";
+import { FILIERE_COULEUR, FILIERE_LIBELLE, nomComplet, type PortraitEtudiant, type TirageResult } from "@/lib/types";
 
-const DRAW_ANIMATION_DURATION_MS = 3000;
-const REVEAL_MODE = "cartes" as const;
+type DrawState = "idle" | "rolling" | "revealing" | "unveiling" | "complete" | "error";
 
-// Pool de noms pour l'effet roulette (spectacle visuel)
-const ROULETTE_POOL = [
-  "AWA DIOP", "CHEIKH NDIAYE", "MARIAMA BA", "IBRAHIMA SARR", "FATIMA SALL",
-  "OUSMANE FALL", "AMINATA SOW", "MAMADOU DIALLO", "KHADY GUEYE", "PAP SY",
-  "BINETA MBAYE", "EL HADJI CISSE", "ASTOU KANE", "MODOU FAYE", "NDÈYE DIONE",
-];
+const MIN_ROLL_DURATION_MS = 2800;
+const isExpectedFlowError = (message: string) =>
+  /déjà tiré|absent|urne vide|Aucun nouveau restant|Les urnes doivent être générées/i.test(message);
 
 export function TirageScreen() {
   const currentNouveau = useAppStore((s) => s.currentNouveau);
   const setCurrentNouveau = useAppStore((s) => s.setCurrentNouveau);
   const setCurrentTirage = useAppStore((s) => s.setCurrentTirage);
-  const drawingResult = useAppStore((s) => s.drawAnimation);
   const setDrawAnimation = useAppStore((s) => s.setDrawAnimation);
-  const resetReveal = useAppStore((s) => s.resetReveal);
+  const setLocalDrawInProgress = useAppStore((s) => s.setLocalDrawInProgress);
   const setView = useAppStore((s) => s.setView);
   const stats = useAppStore((s) => s.stats);
   const filiereActive = useAppStore((s) => s.filiereActive);
 
-  const [displayName, setDisplayName] = useState<string>("…");
-  const [spinning, setSpinning] = useState(false);
-  const [revealing, setRevealing] = useState(false);
-  const [showResult, setShowResult] = useState(false);
-  const [drawProgress, setDrawProgress] = useState(0);
+  const [drawState, setDrawState] = useState<DrawState>("idle");
+  const [portraits, setPortraits] = useState<PortraitEtudiant[]>([]);
+  const [tirage, setTirage] = useState<TirageResult | null>(null);
+  const [rollsSettled, setRollsSettled] = useState(0);
+  const [revealed, setRevealed] = useState({ two: false, three: false });
   const [error, setError] = useState<string | null>(null);
-  const settledRef = useRef(false);
-
-  useEffect(() => {
-    if (!drawingResult) return;
-
-    const startedAt = Date.now();
-    const interval = setInterval(() => {
-      const progress = Math.min(1, (Date.now() - startedAt) / DRAW_ANIMATION_DURATION_MS);
-      setDrawProgress(progress);
-      if (progress >= 1) {
-        clearInterval(interval);
-        setDrawAnimation(null);
-        setView("resultats");
-      }
-    }, 40);
-
-    return () => clearInterval(interval);
-  }, [drawingResult, setDrawAnimation, setView]);
+  const [emptyMessage, setEmptyMessage] = useState<string | null>(null);
+  const drawLockRef = useRef(false);
 
   const totalParraines = stats?.totalParraines ?? 0;
   const total = stats?.totalNouveaux ?? 0;
+  const filiereColor = currentNouveau ? FILIERE_COULEUR[currentNouveau.filiereCode] ?? "#1F7A3A" : "#1F7A3A";
 
-  // Lancer la roulette à l'arrivée d'un nouveau
+  // Lecture seule : charger les portraits n'exécute jamais de tirage.
   useEffect(() => {
-    if (!currentNouveau) {
-      setDisplayName("…");
-      setShowResult(false);
-      return;
-    }
-    settledRef.current = false;
-    setSpinning(true);
-    setShowResult(false);
-    const target = nomComplet(currentNouveau).toUpperCase();
-    let elapsed = 0;
-    const speed = 70;
-    const duration = 2000;
-    const iv = setInterval(() => {
-      setDisplayName(ROULETTE_POOL[Math.floor(Math.random() * ROULETTE_POOL.length)]);
-      elapsed += speed;
-      if (elapsed >= duration) {
-        clearInterval(iv);
-        setSpinning(false);
-        setDisplayName(target);
-        settledRef.current = true;
-      }
-    }, speed);
-    return () => clearInterval(iv);
-  }, [currentNouveau]);
+    if (!currentNouveau) return;
+    let cancelled = false;
+    setPortraits([]);
+    api.portraits(currentNouveau.filiereCode)
+      .then((items) => { if (!cancelled) setPortraits(items); })
+      .catch(() => { if (!cancelled) setPortraits([]); });
+    return () => { cancelled = true; };
+  }, [currentNouveau?.id, currentNouveau?.filiereCode]);
 
-  const isExpectedFlowError = (message: string) =>
-    /déjà tiré|absent|urne vide|Aucun nouveau restant|Les urnes doivent être générées/i.test(message);
+  // Un candidat s'affiche immédiatement, sans roulette automatique.
+  useEffect(() => {
+    drawLockRef.current = false;
+    setLocalDrawInProgress(false);
+    setDrawState("idle");
+    setTirage(null);
+    setRollsSettled(0);
+    setRevealed({ two: false, three: false });
+    setError(null);
+    if (currentNouveau) setEmptyMessage(null);
+  }, [currentNouveau?.id, setLocalDrawInProgress]);
 
   const decouvrir = async () => {
-    if (!currentNouveau || revealing || drawingResult) return;
-    setRevealing(true);
+    if (!currentNouveau || drawLockRef.current || drawState === "rolling" || drawState === "revealing") return;
+    // Verrou synchrone : un double-clic n'atteint jamais l'API deux fois.
+    drawLockRef.current = true;
+    setLocalDrawInProgress(true);
+    setDrawState("rolling");
     setError(null);
+    setTirage(null);
+    setRollsSettled(0);
+    setRevealed({ two: false, three: false });
+    const startedAt = Date.now();
+
     try {
-      const tirage = await api.executerTirage(currentNouveau.id);
-      setCurrentTirage(tirage);
-      resetReveal();
-      spawnConfetti(60);
-      setShowResult(false);
-      setDrawProgress(0);
-      setDrawAnimation(tirage);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erreur de tirage";
-      if (isExpectedFlowError(msg)) {
-        // Ne pas appeler automatiquement le candidat suivant : une urne vide
-        // ou un candidat périmé doit rester visible pour l'opérateur.
-        setError(`${msg}. Aucun nouveau suivant n’a été appelé automatiquement.`);
-        return;
+      const result = await api.executerTirage(currentNouveau.id);
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < MIN_ROLL_DURATION_MS) {
+        await new Promise<void>((resolve) => window.setTimeout(resolve, MIN_ROLL_DURATION_MS - elapsed));
       }
-      setError(msg);
-    } finally {
-      setRevealing(false);
+      setCurrentTirage(result);
+      setDrawAnimation(null);
+      setTirage(result);
+      setDrawState("revealing");
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "Erreur de tirage";
+      setDrawState("error");
+      setError(isExpectedFlowError(message)
+        ? `${message}. Aucun nouveau suivant n’a été appelé automatiquement.`
+        : message);
+      drawLockRef.current = false;
+      setLocalDrawInProgress(false);
+    }
+  };
+
+  const handleRollSettled = useCallback(() => {
+    setRollsSettled((count) => {
+      const next = count + 1;
+      if (next >= 2) {
+        setDrawState("unveiling");
+        spawnConfetti(42);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleMentorRevealed = (level: 2 | 3) => {
+    setRevealed((previous) => {
+      const next = level === 2 ? { ...previous, two: true } : { ...previous, three: true };
+      if (next.two && next.three) {
+        setDrawState("complete");
+        setLocalDrawInProgress(false);
+        spawnConfetti(80);
+      }
+      return next;
+    });
+  };
+
+  const chargerSuivant = async () => {
+    setError(null);
+    setEmptyMessage(null);
+    try {
+      const { nouveau, raison } = await api.prochainNouveau(filiereActive, currentNouveau?.id);
+      setCurrentTirage(null);
+      setDrawAnimation(null);
+      setCurrentNouveau(nouveau);
+      if (!nouveau) {
+        setEmptyMessage(raison === "absents_restants"
+          ? "Les nouveaux restants dans cette filière sont marqués absents."
+          : "Aucun nouveau restant dans cette filière.");
+      }
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Impossible d’appeler le nouveau suivant.");
     }
   };
 
   const suivant = async () => {
-    setShowResult(false);
-    setCurrentTirage(null);
-    try {
-      const { nouveau } = await api.prochainNouveau(filiereActive, currentNouveau?.id);
-      setCurrentNouveau(nouveau);
-      if (!nouveau) setError("Aucun nouveau restant dans cette filière.");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erreur";
-      if (isExpectedFlowError(msg)) {
-        setError(null);
-        return;
-      }
-      setError(msg);
-    }
+    if (drawState !== "complete" && currentNouveau) return;
+    await chargerSuivant();
   };
 
   const marquerAbsent = async () => {
-    if (!currentNouveau) return;
+    if (!currentNouveau || (drawState !== "idle" && drawState !== "error")) return;
     try {
       await api.marquerAbsent(currentNouveau.id, true);
-      await suivant();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
+      await chargerSuivant();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Erreur lors du retrait de l’urne.");
     }
   };
 
@@ -147,223 +154,79 @@ export function TirageScreen() {
     const filiereStats = stats?.filieres.find((f) => f.code === filiereActive);
     const filiereFinished = filiereStats ? filiereStats.restants === 0 : false;
     const allFinished = (stats?.totalRestants ?? 0) === 0 && (stats?.totalNouveaux ?? 0) > 0;
-
     return (
-      <div className="relative flex flex-col w-full overflow-hidden min-h-[calc(100vh-5rem-3.5rem)]">
+      <div className="relative flex min-h-[calc(100vh-5rem-3.5rem)] w-full flex-col overflow-hidden">
         <StageBackground variant="festive" />
-        <div className="relative z-10 flex flex-col items-center justify-center flex-1 text-center px-space-lg max-w-4xl mx-auto">
-          {allFinished || filiereFinished ? (
-            <div className="relative bg-surface-container-lowest/90 backdrop-blur-xl border border-vert-teranga/20 p-space-xl rounded-3xl shadow-2xl flex flex-col items-center animate-[float-slow_0.6s_ease-out]">
-              <div className="w-24 h-24 rounded-full amsen-gradient flex items-center justify-center text-blanc-pure shadow-lg mb-space-md ring-8 ring-vert-teranga/10 animate-bounce">
-                <span className="material-symbols-outlined text-5xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  celebration
-                </span>
-              </div>
-              <span className="px-space-md py-1 rounded-full bg-vert-teranga/10 text-vert-teranga font-label-lg text-label-lg font-black uppercase tracking-widest mb-2">
-                {allFinished ? "Promotion 100% Parrainée" : `Filière ${filiereActive} Terminée`}
-              </span>
-              <h1 className="font-headline text-headline-xl text-on-surface font-black uppercase tracking-tight">
-                {allFinished ? "Tous les nouveaux ont été parrainés !" : `Tous les filleuls ${filiereActive} ont leurs parrains !`}
-              </h1>
-              <p className="mt-space-sm font-body text-body-lg text-on-surface-variant max-w-lg">
-                {allFinished
-                  ? "La cérémonie officielle a atteint 100% de parrainages pour l'ensemble des filières. Félicitations à toute la famille ENSAE Dakar !"
-                  : `Il n'y a plus aucun nouveau en attente dans la filière ${filiereActive}. Choisissez une autre filière ou consultez les résultats finaux.`}
-              </p>
-              
-              <div className="flex items-center gap-space-md mt-space-lg flex-wrap justify-center">
-                <button
-                  onClick={() => setView("resultats")}
-                  className="px-space-xl py-space-sm rounded-full bg-vert-teranga text-blanc-pure font-label-lg text-label-lg font-bold shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                >
-                  <span className="material-symbols-outlined">family_restroom</span>
-                  <span>Voir la Carte Famille</span>
-                </button>
-                <button
-                  onClick={() => setView("pilote")}
-                  className="px-space-lg py-space-sm rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-lg text-label-lg font-bold transition-all flex items-center gap-2"
-                >
-                  <span className="material-symbols-outlined">tune</span>
-                  <span>Changer de filière (Pilote)</span>
-                </button>
-              </div>
+        <div className="relative z-10 mx-auto flex flex-1 flex-col items-center justify-center px-space-lg text-center">
+          <div className="max-w-3xl rounded-3xl border border-vert-teranga/20 bg-surface-container-lowest/90 p-space-xl shadow-2xl backdrop-blur-xl">
+            <AmsenLogo size={96} className="mx-auto mb-space-md" />
+            <span className="rounded-full bg-vert-teranga/10 px-space-md py-1 font-label-md text-label-md font-black uppercase tracking-widest text-vert-teranga">{allFinished ? "Promotion 100 % parrainée" : filiereFinished ? `Filière ${filiereActive} terminée` : "Scène prête"}</span>
+            <h1 className="mt-3 font-headline text-[clamp(2.25rem,5vw,4rem)] font-black uppercase tracking-tight text-on-surface">{allFinished || filiereFinished ? "La famille s’agrandit" : "En attente du prochain nouveau"}</h1>
+            <p className="mt-space-sm font-body text-body-lg text-on-surface-variant">{allFinished || filiereFinished ? "Consultez les résultats ou choisissez une autre filière pour continuer la cérémonie." : `L’animateur peut appeler le prochain étudiant de la filière ${filiereActive}.`}</p>
+            <div className="mt-space-lg flex flex-wrap justify-center gap-space-sm">
+              {!allFinished && !filiereFinished && <button onClick={suivant} className="rounded-full amsen-gradient px-space-xl py-space-md font-headline text-headline-sm font-black uppercase tracking-wider text-blanc-pure shadow-lg transition-transform hover:scale-105"><span className="material-symbols-outlined mr-2 align-middle">play_arrow</span>Appeler le prochain</button>}
+              <button onClick={() => setView("resultats")} className="rounded-full bg-surface-container-high px-space-lg py-space-sm font-label-lg font-bold text-on-surface transition-colors hover:bg-surface-container-highest">Voir les résultats</button>
             </div>
-          ) : (
-            <>
-              <AmsenLogo size={160} className="mb-space-md" />
-              <h1 className="font-headline text-headline-xl text-encre-text font-extrabold uppercase">
-                En attente du prochain
-              </h1>
-              <p className="mt-space-sm font-body text-body-lg text-on-surface-variant max-w-xl">
-                Aucun nouveau n&apos;est sur scène. L&apos;animateur peut lancer le tirage du
-                prochain étudiant de la filière {filiereActive}.
-              </p>
-              <button
-                onClick={suivant}
-                className="mt-space-lg px-space-xl py-space-md rounded-full amsen-gradient text-blanc-pure font-headline text-headline-sm font-black uppercase tracking-wider shadow-lg hover:scale-105 transition-transform"
-              >
-                <span className="material-symbols-outlined align-middle mr-2">play_arrow</span>
-                Appeler le prochain nouveau
-              </button>
-            </>
-          )}
-
-          {error && (
-            <p className="mt-space-md font-label-md text-label-md text-rouge-laterite font-semibold">{error}</p>
-          )}
+            {(emptyMessage || error) && <p className="mt-space-md font-label-md font-semibold text-rouge-laterite" role="alert">{emptyMessage || error}</p>}
+          </div>
         </div>
       </div>
     );
   }
 
-  const filiereColor = FILIERE_COULEUR[currentNouveau.filiereCode] ?? "#1F7A3A";
+  const isRolling = drawState === "rolling" || drawState === "revealing";
+  const isRevealing = drawState === "unveiling" || drawState === "complete";
+  const canStart = drawState === "idle" || drawState === "error";
 
   return (
-    <div className="relative flex flex-col w-full overflow-hidden min-h-[calc(100vh-5rem-3.5rem)]">
+    <div className="relative flex min-h-[calc(100vh-5rem-3.5rem)] w-full flex-col overflow-hidden">
       <StageBackground variant="festive" />
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col px-margin py-space-md">
+        <header className="flex flex-wrap items-center justify-between gap-space-sm">
+          <div className="flex items-center gap-space-sm rounded-full bg-surface-container-low/80 px-space-md py-space-xs shadow-sm backdrop-blur-md"><AmsenLogo size={36} /><div><p className="font-headline text-label-md font-black uppercase tracking-wider text-on-surface">AMSEN ENSAE</p><p className="font-label-md text-xs text-on-surface-variant">Cérémonie de parrainage</p></div></div>
+          <div className="flex items-center gap-space-sm"><span className="rounded-full bg-vert-teranga/10 px-space-md py-space-xs font-label-md text-xs font-black uppercase tracking-wider text-vert-teranga"><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full bg-vert-teranga animate-pulse" />Urne active</span><span className="rounded-2xl bg-surface-container-high px-space-md py-space-xs font-headline text-xl font-black text-vert-teranga">{totalParraines}<span className="mx-1 text-outline">/</span><span className="text-on-surface">{total}</span></span></div>
+        </header>
 
-
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-margin py-space-md flex flex-col justify-between items-center flex-1">
-        {/* Barre supérieure */}
-        <div className="w-full flex items-center justify-between">
-          <div className="flex items-center gap-space-sm bg-surface-container-low/80 backdrop-blur-md px-space-md py-space-xs rounded-full shadow-sm">
-            <AmsenLogo size={36} />
-            <div className="flex flex-col">
-              <span className="font-headline text-label-md tracking-wider text-on-surface uppercase font-black">
-                AMSEN ENSAE
-              </span>
-              <span className="font-label-md text-label-md text-on-surface-variant font-medium">
-                Cérémonie de Parrainage
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-space-md">
-            <div className="flex items-center gap-space-xs bg-vert-teranga/10 px-space-md py-space-xs rounded-full">
-              <span className="w-3.5 h-3.5 rounded-full bg-vert-teranga animate-ping" />
-              <span className="font-label-lg text-label-lg text-vert-teranga font-bold tracking-wider uppercase">
-                Urne Active
-              </span>
-            </div>
-            <div className="flex items-baseline gap-1.5 bg-surface-container-high px-space-md py-space-xs rounded-2xl shadow-sm">
-              <span className="font-headline text-headline-sm text-vert-teranga font-black tabular-nums">
-                {totalParraines}
-              </span>
-              <span className="font-headline text-body-lg text-outline font-bold">/</span>
-              <span className="font-headline text-headline-sm text-on-surface font-extrabold tabular-nums">
-                {total}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Scène centrale */}
-        <div className="w-full flex flex-col items-center justify-center my-auto py-space-xs text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <span className="material-symbols-outlined text-jaune-soleil text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-              stars
-            </span>
-            <p className="font-headline text-headline-md text-on-surface tracking-tight uppercase font-extrabold drop-shadow-sm">
-              Qui est le prochain ?
-            </p>
-            <span className="material-symbols-outlined text-jaune-soleil text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-              stars
-            </span>
-          </div>
-
-          {/* Chip filière */}
-          <div
-            className="mb-3 flex items-center gap-2 px-space-md py-1.5 rounded-full shadow-md font-label-lg text-label-lg font-black tracking-widest uppercase"
-            style={{ background: filiereColor, color: currentNouveau.filiereCode === "ISE_ECO" ? "#1a1a1a" : "#fff" }}
-          >
-            <span className="w-3 h-3 rounded-full" style={{ background: currentNouveau.filiereCode === "ISE_ECO" ? "#1a1a1a" : "#fff" }} />
-            <span>{currentNouveau.filiereCode}_1</span>
-          </div>
-
-          {/* Nom géant */}
-          <div className="relative overflow-visible px-space-xl py-1 flex items-center justify-center">
-            <h1
-              className="font-headline text-display-stage text-on-surface font-black uppercase tracking-tight text-center leading-none drop-shadow-sm transition-all duration-300"
-              style={{
-                transform: spinning ? `translateY(${Math.sin(Date.now() / 60) * 6}px) scale(0.98)` : "translateY(0) scale(1)",
-                fontSize: "clamp(48px, 7vw, 96px)",
-              }}
-            >
-              {displayName}
-            </h1>
-          </div>
-
-          {/* Soulignement tricolore */}
-          <div className="flex items-center justify-center gap-1.5 mt-2 w-48 h-2">
-            <span className="w-1/3 h-full bg-vert-teranga rounded-full" />
-            <span className="w-1/3 h-full bg-jaune-soleil rounded-full" />
-            <span className="w-1/3 h-full bg-rouge-laterite rounded-full" />
-          </div>
-
-          {/* Bouton DÉCOUVRIR */}
-          <div className="relative mt-space-sm flex flex-col items-center">
-            <div className="absolute inset-0 rounded-full bg-jaune-soleil/40 blur-2xl animate-pulse scale-125 pointer-events-none" />
-            <button
-              onClick={decouvrir}
-              disabled={revealing || spinning || !!drawingResult}
-              className="relative group cursor-pointer w-[260px] h-[260px] rounded-full flex flex-col items-center justify-center text-blanc-pure shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed amsen-gradient"
-              type="button"
-            >
-              <div className="absolute inset-2 rounded-full bg-blanc-pure/15 backdrop-blur-[2px] flex flex-col items-center justify-center transition-all group-hover:bg-transparent">
-                <span
-                  className="material-symbols-outlined text-5xl mb-1 drop-shadow-md text-blanc-pure transform group-hover:scale-110 transition-transform duration-300"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  touch_app
-                </span>
-                <span className="font-headline text-headline-sm font-black tracking-widest text-blanc-pure uppercase drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
-                  {revealing ? "…" : "DÉCOUVRIR"}
-                </span>
-              </div>
-            </button>
-            <div className="mt-space-md flex items-center gap-2 bg-surface-container-low px-space-md py-space-xs rounded-full shadow-sm">
-              <span className="material-symbols-outlined text-vert-teranga text-xl animate-bounce">arrow_upward</span>
-              <p className="font-label-lg text-label-lg text-on-surface font-semibold tracking-wide">
-                Appuie pour révéler tes parrains
-              </p>
-            </div>
-          </div>
-
-          {error && (
-            <p className="mt-space-sm font-label-md text-label-md text-rouge-laterite font-semibold">{error}</p>
+        <main className="my-auto w-full py-space-lg">
+          {!isRolling && !isRevealing && (
+            <section className="mx-auto flex max-w-4xl flex-col items-center text-center">
+              <span className="flex items-center gap-2 font-label-lg font-black uppercase tracking-[0.2em] text-vert-teranga"><span className="material-symbols-outlined text-jaune-soleil">stars</span>Nouveau sur scène<span className="material-symbols-outlined text-jaune-soleil">stars</span></span>
+              <div className="mt-5 rounded-full px-5 py-2 font-label-lg font-black uppercase tracking-widest shadow-md" style={{ background: filiereColor, color: currentNouveau.filiereCode === "ISE_ECO" ? "#1a1a1a" : "#fff" }}>{currentNouveau.filiereCode}_1 · {FILIERE_LIBELLE[currentNouveau.filiereCode]}</div>
+              <h1 className="mt-5 font-headline text-[clamp(3rem,9vw,7rem)] font-black uppercase leading-none tracking-tight text-on-surface">{nomComplet(currentNouveau)}</h1>
+              <div className="mt-5 flex h-2 w-48 overflow-hidden rounded-full"><span className="flex-1 bg-vert-teranga" /><span className="flex-1 bg-jaune-soleil" /><span className="flex-1 bg-rouge-laterite" /></div>
+              <button type="button" onClick={decouvrir} disabled={!canStart} className="group relative mt-8 flex h-[min(260px,60vw)] w-[min(260px,60vw)] items-center justify-center rounded-full amsen-gradient text-blanc-pure shadow-[0_24px_55px_-12px_rgba(31,122,58,.65)] transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"><span className="absolute inset-2 rounded-full border border-blanc-pure/30 bg-blanc-pure/10" /><span className="relative flex flex-col items-center"><span className="material-symbols-outlined mb-1 text-5xl">touch_app</span><span className="font-headline text-2xl font-black uppercase tracking-widest">Découvrir</span><span className="mt-1 font-label-md text-xs font-bold uppercase tracking-wider">Ses deux parrains</span></span></button>
+              <p className="mt-5 rounded-full bg-surface-container-low px-4 py-2 font-label-md text-sm font-semibold text-on-surface-variant">Le tirage démarre uniquement à l’appui sur Découvrir.</p>
+            </section>
           )}
 
-        </div>
+          {isRolling && (
+            <section className="mx-auto w-full max-w-6xl text-center">
+              <p className="font-label-lg font-black uppercase tracking-[0.2em] text-vert-teranga">Parrainage de {nomComplet(currentNouveau)}</p>
+              <h1 className="mt-2 font-headline text-[clamp(2.5rem,5vw,4.5rem)] font-black uppercase tracking-tight text-on-surface">Les parrains se dévoilent</h1>
+              <p className="mx-auto mt-2 max-w-2xl font-body text-body-md text-on-surface-variant">Les portraits défilent pour la cérémonie. Seul le résultat enregistré par l’urne peut arrêter les bandes.</p>
+              <div className="mt-7 grid gap-5 lg:grid-cols-2">
+                <PhotoLotteryRoll niveau={2} portraits={portraits} winner={drawState === "revealing" ? tirage?.parrain2 ?? null : null} onSettled={handleRollSettled} />
+                <PhotoLotteryRoll niveau={3} portraits={portraits} winner={drawState === "revealing" ? tirage?.parrain3 ?? null : null} onSettled={handleRollSettled} />
+              </div>
+              <div className="mt-5 flex items-center justify-center gap-2 font-label-md text-sm font-bold uppercase tracking-wider text-on-surface-variant"><span className="h-2.5 w-2.5 rounded-full bg-jaune-soleil animate-pulse" />{drawState === "rolling" ? "Vérification sécurisée auprès de l’urne…" : "Résultats confirmés — arrêt des roulettes…"}</div>
+            </section>
+          )}
 
-        {/* Barre de contrôle animateur */}
-        <div className="w-full pt-space-xs flex flex-wrap items-center justify-between gap-space-sm">
-          <div className="flex items-center gap-2 text-outline font-label-md text-label-md">
-            <span className="w-2 h-2 rounded-full bg-jaune-soleil animate-pulse" />
-            <span>En attente de confirmation sur scène</span>
-          </div>
-          <div className="flex items-center gap-space-xs">
-            <button
-              onClick={marquerAbsent}
-              disabled={showResult || revealing}
-              title={
-                showResult
-                  ? "Tirage déjà effectué : ce nouveau a ses deux parrains et ne peut pas être retiré de l'urne."
-                  : "Marquer absent : retire définitivement ce nouveau de l'urne."
-              }
-              className="flex items-center gap-1.5 px-space-md py-space-xs rounded-full font-label-md text-label-md font-semibold text-rouge-laterite bg-surface-container-low hover:bg-rouge-laterite/10 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <span className="material-symbols-outlined text-lg">person_remove</span>
-              <span>Absent (retirer de l&apos;urne)</span>
-            </button>
-            <button
-              onClick={suivant}
-              disabled={revealing || !!drawingResult}
-              className="flex items-center gap-1.5 px-space-md py-space-xs rounded-full font-label-md text-label-md font-semibold text-blanc-pure bg-vert-teranga hover:bg-primary-container shadow-md transition-all"
-            >
-              <span>Étudiant Suivant</span>
-              <span className="material-symbols-outlined text-lg">arrow_forward</span>
-            </button>
-          </div>
-        </div>
+          {isRevealing && tirage && (
+            <section className="mx-auto w-full max-w-6xl">
+              <div className="mb-6 text-center"><p className="font-label-lg font-black uppercase tracking-[0.2em] text-vert-teranga">Famille de {nomComplet(tirage.filleul)}</p><h1 className="mt-2 font-headline text-[clamp(2.3rem,5vw,4rem)] font-black uppercase tracking-tight text-on-surface">Voici tes parrains</h1><p className="mt-2 font-body text-body-md text-on-surface-variant">Les portraits se révèlent en direct. Les initiales prennent le relais si aucune photo n’est renseignée.</p></div>
+              <div className="grid gap-5 md:grid-cols-2"><MentorRevealCard key={`2-${tirage.parrain2.id}`} parrain={tirage.parrain2} niveau={2} onRevealed={() => handleMentorRevealed(2)} /><MentorRevealCard key={`3-${tirage.parrain3.id}`} parrain={tirage.parrain3} niveau={3} onRevealed={() => handleMentorRevealed(3)} /></div>
+              {drawState === "complete" && <div className="mt-6"><FamilyCard tirage={tirage} /><div className="mt-6 flex justify-center"><button type="button" onClick={suivant} className="flex items-center gap-2 rounded-full bg-vert-teranga px-7 py-4 font-headline text-xl font-black uppercase tracking-wide text-blanc-pure shadow-lg transition-transform hover:scale-105 active:scale-95"><span>Nouveau suivant</span><span className="material-symbols-outlined">arrow_forward</span></button></div></div>}
+            </section>
+          )}
+
+          {error && <p className="mx-auto mt-5 max-w-3xl rounded-2xl border border-rouge-laterite/20 bg-rouge-laterite/10 px-5 py-3 text-center font-label-md font-bold text-rouge-laterite" role="alert">{error}</p>}
+        </main>
+
+        <footer className="flex flex-wrap items-center justify-between gap-space-sm border-t border-outline/15 pt-space-sm">
+          <span className="font-label-md text-sm text-outline">{drawState === "complete" ? "Parrainage enregistré · prêt pour le nouveau suivant" : isRolling ? "Mise en scène en cours · une seule requête sécurisée" : "En attente de l’animateur"}</span>
+          <div className="flex items-center gap-2"><button type="button" onClick={marquerAbsent} disabled={drawState !== "idle" && drawState !== "error"} className="rounded-full bg-surface-container-low px-4 py-2 font-label-md text-sm font-semibold text-rouge-laterite transition-colors hover:bg-rouge-laterite/10 disabled:cursor-not-allowed disabled:opacity-40"><span className="material-symbols-outlined mr-1 align-middle text-lg">person_remove</span>Absent</button>{drawState === "complete" && <button type="button" onClick={suivant} className="rounded-full bg-encre-text px-4 py-2 font-label-md text-sm font-bold text-blanc-pure transition-transform active:scale-95">Nouveau suivant</button>}</div>
+        </footer>
       </div>
     </div>
   );

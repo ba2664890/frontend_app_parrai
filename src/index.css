@@ -109,6 +109,26 @@
   50% { transform: translateY(-12px); }
 }
 
+.photo-lottery-window {
+  --photo-lottery-card-width: clamp(11.5rem, 22vw, 16.5rem);
+}
+.photo-lottery-roll-track,
+.photo-lottery-finish-track {
+  display: grid;
+  grid-auto-columns: var(--photo-lottery-card-width);
+  grid-auto-flow: column;
+  gap: .75rem;
+  height: 100%;
+  padding-inline: calc(50% - var(--photo-lottery-card-width) / 2);
+}
+.photo-lottery-roll-track { animation: photo-lottery-roll 1.15s linear infinite; }
+.photo-lottery-finish-track { transition: transform 1.35s cubic-bezier(.12,.8,.18,1); }
+.photo-lottery-card { min-width: 0; padding-block: .45rem; }
+@keyframes photo-lottery-roll {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-5 * (var(--photo-lottery-card-width) + .75rem))); }
+}
+
 @layer base {
   * { @apply border-border outline-ring/50; }
   html, body {
@@ -208,5 +228,6 @@
 @media (prefers-reduced-motion: reduce) {
   .reveal-roulette-track, .reveal-lock-icon, .reveal-constellation svg circle,
   .reveal-star-label, .reveal-dice-pair span { animation-duration: 3s; }
+  .photo-lottery-roll-track { animation-duration: 3s; }
 }
 

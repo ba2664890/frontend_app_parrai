@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { useAppStore } from "@/store/useAppStore";
+import { api } from "@/lib/api";
 import { spawnConfetti, spawnConfettiIn } from "@/components/shared/Confetti";
 import { StageBackground } from "@/components/shared/StageBackground";
 import { AmsenStar } from "@/components/shared/AmsenLogo";
@@ -23,25 +24,45 @@ const REVEAL_DURATION_MS = 3000;
 export function ResultatsScreen() {
   const tirage = useAppStore((s) => s.currentTirage);
   const setView = useAppStore((s) => s.setView);
-  const resetReveal = useAppStore((s) => s.resetReveal);
+  const setCurrentNouveau = useAppStore((s) => s.setCurrentNouveau);
+  const setCurrentTirage = useAppStore((s) => s.setCurrentTirage);
+  const setStats = useAppStore((s) => s.setStats);
 
   const [mentorIdx, setMentorIdx] = useState(0);
   const [revealed2, setRevealed2] = useState(false);
   const [revealed3, setRevealed3] = useState(false);
+  const [loadingNext, setLoadingNext] = useState(false);
+  const [nextError, setNextError] = useState<string | null>(null);
 
   const parrain = mentorIdx === 0 ? tirage?.parrain2 : tirage?.parrain3;
   const niveau = mentorIdx === 0 ? 2 : 3;
   const bothRevealed = revealed2 && revealed3;
 
-  const nextMentor = () => {
+  const nextMentor = async () => {
     if (mentorIdx === 0) {
       setMentorIdx(1);
-    } else {
-      setView("accueil");
-      resetReveal();
-      setMentorIdx(0);
-      setRevealed2(false);
-      setRevealed3(false);
+      return;
+    }
+    if (!bothRevealed || loadingNext || !tirage) return;
+
+    setLoadingNext(true);
+    setNextError(null);
+    try {
+      const { nouveau } = await api.prochainNouveau(
+        tirage.filleul.filiereCode,
+        tirage.filleul.id,
+      );
+      setCurrentNouveau(nouveau);
+      setCurrentTirage(null);
+      if (!nouveau) {
+        const latestStats = await api.stats();
+        setStats(latestStats);
+      }
+      setView("tirage");
+    } catch (error) {
+      setNextError(error instanceof Error ? error.message : "Impossible d’appeler le nouveau suivant.");
+    } finally {
+      setLoadingNext(false);
     }
   };
 
@@ -150,10 +171,16 @@ export function ResultatsScreen() {
           onNext={nextMentor}
           bothRevealed={bothRevealed}
           isFirst={mentorIdx === 0}
+          nextDisabled={loadingNext}
         />
 
         {/* Carte Famille (quand les 2 parrains sont révélés) */}
         {bothRevealed && <FamilyCard tirage={tirage} />}
+        {nextError && (
+          <p className="text-center font-label-md text-label-md font-semibold text-rouge-laterite" role="alert">
+            {nextError}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -172,6 +199,7 @@ function ParrainReveal({
   onNext,
   bothRevealed,
   isFirst,
+  nextDisabled,
 }: {
   parrain: Etudiant;
   niveau: number;
@@ -180,6 +208,7 @@ function ParrainReveal({
   onNext: () => void;
   bothRevealed: boolean;
   isFirst: boolean;
+  nextDisabled: boolean;
 }) {
   // Progression du défloutage : 0 → 1 sur 3 secondes (démarrage automatique)
   const [progress, setProgress] = useState(0);
@@ -380,13 +409,16 @@ function ParrainReveal({
             </button>
             <button
               onClick={onNext}
+              disabled={nextDisabled || (!isFirst && !bothRevealed)}
               className="flex items-center gap-space-xs px-space-lg py-space-sm rounded-full bg-encre-text hover:bg-inverse-surface text-blanc-pure font-label-lg text-label-lg transition-transform active:scale-95 shadow-md"
             >
               <span>
                 {isFirst
                   ? "Parrain 2 (3e Année)"
                   : bothRevealed
-                  ? "Carte Famille →"
+                  ? nextDisabled
+                    ? "Chargement…"
+                    : "Nouveau suivant"
                   : "Voir carte Famille"}
               </span>
               <span className="material-symbols-outlined">arrow_forward</span>

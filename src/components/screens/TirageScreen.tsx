@@ -3,6 +3,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { api } from "@/lib/api";
 import { spawnConfetti } from "@/components/shared/Confetti";
 import { StageBackground } from "@/components/shared/StageBackground";
+import { AmsenStar } from "@/components/shared/AmsenLogo";
 import { FinishedModal } from "@/components/shared/FinishedModal";
 import type { SphereDrawPhase } from "@/components/shared/PhotoSphereStage";
 import { FILIERE_COULEUR, FILIERE_LIBELLE, initiales, nomComplet, type Etudiant, type PortraitEtudiant, type TirageResult } from "@/lib/types";
@@ -23,16 +24,16 @@ const REVEAL_DURATION_MS = 3000;
 function NouveauOnStage({ nouveau }: { nouveau: Etudiant }) {
   const color = FILIERE_COULEUR[nouveau.filiereCode] ?? "#1F7A3A";
   return (
-    <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-space-md pb-24">
-      <article className="newcomer-stage-card pointer-events-auto flex w-full max-w-sm flex-col items-center rounded-[28px] border border-blanc-pure bg-surface-container-lowest/95 p-space-md text-center shadow-[0_28px_70px_-28px_rgba(31,122,58,.48)] backdrop-blur-xl">
-        <span className="mb-3 rounded-full px-4 py-1.5 font-label-md text-xs font-black uppercase tracking-[0.18em]" style={{ background: color, color: nouveau.filiereCode === "ISE_ECO" ? "#1a1a1a" : "#fff" }}>
+    <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-space-md pb-40">
+      <article className="newcomer-stage-card pointer-events-auto flex w-full max-w-3xl flex-col items-center text-center">
+        <span className="mb-3 rounded-full px-4 py-1.5 font-label-md text-xs font-black uppercase tracking-[0.18em] shadow-sm" style={{ background: color, color: nouveau.filiereCode === "ISE_ECO" ? "#1a1a1a" : "#fff" }}>
           Nouveau sur scène
         </span>
-        <div className="newcomer-stage-avatar overflow-hidden rounded-full border-4 border-blanc-pure shadow-xl" style={{ background: color }}>
+        <div className="newcomer-stage-avatar overflow-hidden rounded-full border-4 border-blanc-pure shadow-[0_16px_40px_rgba(0,0,0,.24)]" style={{ background: color }}>
           {nouveau.photo ? <img src={nouveau.photo} alt={nomComplet(nouveau)} className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center font-headline text-3xl font-black tracking-wider text-blanc-pure">{initiales(nouveau.prenom, nouveau.nom)}</span>}
         </div>
-        <h1 className="mt-4 font-headline text-[clamp(2rem,4vw,3rem)] font-black uppercase leading-none tracking-tight text-on-surface">{nomComplet(nouveau)}</h1>
-        <p className="mt-2 font-label-md text-sm font-bold uppercase tracking-wider text-on-surface-variant">{FILIERE_LIBELLE[nouveau.filiereCode]} · 1re année</p>
+        <h1 className="mt-4 font-headline text-[clamp(2rem,5vw,4rem)] font-black uppercase leading-none tracking-tight text-black drop-shadow-sm">{nomComplet(nouveau)}</h1>
+        <p className="mt-2 font-label-md text-sm font-bold uppercase tracking-wider text-black">{FILIERE_LIBELLE[nouveau.filiereCode]} · 1re année</p>
         <div className="mt-5 flex h-1.5 w-32 overflow-hidden rounded-full"><span className="flex-1 bg-vert-teranga" /><span className="flex-1 bg-jaune-soleil" /><span className="flex-1 bg-rouge-laterite" /></div>
       </article>
     </div>
@@ -245,20 +246,34 @@ export function TirageScreen() {
 
       {currentNouveau && canStart && <NouveauOnStage nouveau={currentNouveau} />}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-8 z-30 flex items-center justify-center gap-5">
+      <div className="pointer-events-none absolute inset-x-0 bottom-5 z-30 flex items-end justify-center gap-5">
         {canStart && currentNouveau && (
-          <button
-            type="button"
-            onClick={decouvrir}
-            className={"pointer-events-auto sphere-icon-control sphere-icon-control--primary " + (drawState === "error" ? "sphere-icon-control--alert" : "")}
-            aria-label={drawState === "error" ? "Réessayer le tirage" : "Lancer le tirage"}
-          >
-            <span className="material-symbols-outlined text-2xl">{drawState === "error" ? "refresh" : "play_arrow"}</span>
-            <span className="font-label-md text-sm font-black uppercase tracking-wider">{drawState === "error" ? "Réessayer" : "Découvrir"}</span>
-          </button>
+          <div className="pointer-events-auto relative flex flex-col items-center">
+            <div className="absolute inset-0 scale-125 rounded-full bg-jaune-soleil/35 blur-2xl animate-pulse" />
+            <button
+              type="button"
+              onClick={decouvrir}
+              aria-label={drawState === "error" ? "Réessayer le tirage" : "Lancer le tirage"}
+              className={"relative group h-[260px] w-[260px] cursor-pointer rounded-full p-2.5 amsen-gradient shadow-[0_24px_50px_rgba(31,122,58,.35)] transition-transform duration-300 hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 " + (drawState === "error" ? "sphere-icon-control--alert" : "")}
+            >
+              <span className="flex h-full w-full flex-col items-center justify-center rounded-full bg-blanc-pure/10 p-space-sm text-blanc-pure backdrop-blur-[2px] transition-colors group-hover:bg-transparent">
+                {drawState === "error" ? (
+                  <span className="material-symbols-outlined mb-2 text-5xl">refresh</span>
+                ) : (
+                  <AmsenStar size={48} fill="#ffffff" className="mb-2 transition-transform duration-500 group-hover:rotate-45" />
+                )}
+                <span className="font-headline text-headline-md font-black uppercase leading-none tracking-wider text-white drop-shadow-lg">
+                  {drawState === "error" ? "Réessayer" : "Découvrir"}
+                </span>
+                <span className="mt-2 font-label-md text-label-md font-semibold uppercase tracking-widest text-white/90">
+                  Lancer le tirage
+                </span>
+              </span>
+            </button>
+          </div>
         )}
         {canStart && currentNouveau && (
-          <button type="button" onClick={marquerAbsent} className="pointer-events-auto sphere-icon-control sphere-icon-control--secondary" aria-label="Marquer le nouveau absent">
+          <button type="button" onClick={marquerAbsent} className="sphere-icon-control sphere-icon-control--secondary pointer-events-auto mb-5" aria-label="Marquer le nouveau absent">
             <span className="material-symbols-outlined text-2xl">person_remove</span>
             <span className="font-label-md text-sm font-black uppercase tracking-wider">Absent</span>
           </button>

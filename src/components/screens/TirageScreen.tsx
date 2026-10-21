@@ -5,6 +5,7 @@ import { spawnConfetti } from "@/components/shared/Confetti";
 import { StageBackground } from "@/components/shared/StageBackground";
 import { AmsenStar } from "@/components/shared/AmsenLogo";
 import { FinishedModal } from "@/components/shared/FinishedModal";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { SphereDrawPhase } from "@/components/shared/PhotoSphereStage";
 import { FILIERE_COULEUR, FILIERE_LIBELLE, initiales, nomComplet, type Etudiant, type PortraitEtudiant, type TirageResult } from "@/lib/types";
 
@@ -59,6 +60,7 @@ export function TirageScreen() {
   const [tirage, setTirage] = useState<TirageResult | null>(null);
   const [revealProgress, setRevealProgress] = useState(0);
   const [completion, setCompletion] = useState<CompletionState | null>(null);
+  const [drawError, setDrawError] = useState<string | null>(null);
   const [loadingNext, setLoadingNext] = useState(false);
   const drawLockRef = useRef(false);
   const timersRef = useRef<number[]>([]);
@@ -104,6 +106,7 @@ export function TirageScreen() {
     drawLockRef.current = true;
     setLocalDrawInProgress(true);
     setDrawState("rolling");
+    setDrawError(null);
     setTirage(null);
     setRevealProgress(0);
     const startedAt = Date.now();
@@ -126,8 +129,14 @@ export function TirageScreen() {
         setDrawState("revealing");
         spawnConfetti(70);
       }, SETTLING_DURATION_MS));
-    } catch {
-      // Aucun tirage suivant n'est déclenché : l'icône rouge permet un nouvel essai.
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erreur inconnue";
+      setDrawError(
+        /urne vide|aucun parrain/i.test(message)
+          ? "L’urne d’un des niveaux (2A ou 3A) est vide ou épuisée. Vérifiez qu’il reste des parrains éligibles, puis régénérez les urnes depuis l’écran Pilote. Aucun nouveau suivant n’a été appelé."
+          : `Le tirage n’a pas pu aboutir : ${message}`,
+      );
+      // Aucun tirage suivant n'est déclenché automatiquement.
       setDrawState("error");
       drawLockRef.current = false;
       setLocalDrawInProgress(false);
@@ -177,7 +186,8 @@ export function TirageScreen() {
       setDrawAnimation(null);
       setCurrentNouveau(nouveau);
       if (!nouveau) await terminerFiliere(raison ?? "filiere_terminee");
-    } catch {
+    } catch (error) {
+      setDrawError(error instanceof Error ? error.message : "Impossible d’appeler le nouveau suivant.");
       setDrawState("error");
     } finally {
       setLoadingNext(false);
@@ -192,7 +202,8 @@ export function TirageScreen() {
       const { nouveau, raison } = await api.prochainNouveau(filiereActive, currentNouveau.id);
       setCurrentNouveau(nouveau);
       if (!nouveau) await terminerFiliere(raison ?? "absents_restants");
-    } catch {
+    } catch (error) {
+      setDrawError(error instanceof Error ? error.message : "Impossible de marquer ce nouveau absent.");
       setDrawState("error");
     }
   };
@@ -232,6 +243,45 @@ export function TirageScreen() {
           setView("pilote");
         }}
       />
+      <Dialog
+        open={Boolean(drawError)}
+        onOpenChange={(open) => {
+          if (!open) setDrawError(null);
+        }}
+      >
+        <DialogContent className="max-w-lg rounded-3xl border border-rouge-laterite/20 bg-surface-container-lowest p-7 text-center shadow-2xl">
+          <DialogHeader className="items-center text-center sm:text-center">
+            <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-rouge-laterite/10 text-rouge-laterite">
+              <span className="material-symbols-outlined text-3xl">error</span>
+            </div>
+            <DialogTitle className="font-headline text-headline-sm font-black uppercase text-encre-text">
+              Tirage impossible
+            </DialogTitle>
+            <DialogDescription className="mt-2 text-center font-body text-body-md text-on-surface-variant">
+              {drawError}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex-col gap-2 sm:flex-col sm:justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                setDrawError(null);
+                void decouvrir();
+              }}
+              className="w-full rounded-full amsen-gradient px-5 py-3 font-label-md text-label-md font-bold uppercase tracking-wide text-white shadow-md transition-transform hover:scale-[1.02] active:scale-95"
+            >
+              Réessayer le tirage
+            </button>
+            <button
+              type="button"
+              onClick={() => setDrawError(null)}
+              className="w-full rounded-full border border-outline-variant/40 bg-surface-container-low px-5 py-3 font-label-md text-label-md font-bold text-on-surface transition-colors hover:bg-surface-container-high"
+            >
+              Fermer
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Suspense fallback={<div className="absolute inset-0 grid place-items-center"><span className="h-28 w-28 animate-ping rounded-full border border-violet-300/60 shadow-[0_0_70px_rgba(139,92,246,.9)]" /></div>}>
         <PhotoSphereStage
           portraits={portraits}

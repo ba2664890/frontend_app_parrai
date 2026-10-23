@@ -121,40 +121,40 @@ function WinnerPortrait({ winner, tone, side, level, revealProgress }: { winner:
 
   useFrame(({ clock }, delta) => {
     if (card.current) {
-      const targetScale = 1;
+      const targetScale = 1.25;
       const scale = THREE.MathUtils.damp(card.current.scale.x, targetScale, 4.5, delta);
       card.current.scale.setScalar(scale);
       card.current.position.y = Math.sin(clock.getElapsedTime() * 1.7 + side) * 0.1;
     }
     if (halo.current) {
-      const scale = 1.25 + Math.sin(clock.getElapsedTime() * 3) * 0.08;
+      const scale = 1.35 + Math.sin(clock.getElapsedTime() * 3) * 0.08;
       halo.current.scale.set(scale, scale, scale);
       (halo.current.material as THREE.MeshBasicMaterial).opacity = 0.35 + Math.sin(clock.getElapsedTime() * 3) * 0.08;
     }
   });
 
   return (
-    <group ref={card} position={[side * 2.28, 0, 1.7]} scale={0.1}>
+    <group ref={card} position={[side * 1.75, 0, 1.85]} scale={0.1}>
       <mesh ref={halo}>
-        <circleGeometry args={[1.7, 48]} />
+        <circleGeometry args={[2.0, 48]} />
         <meshBasicMaterial color={tone} transparent opacity={0.35} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       <Billboard follow>
         <mesh position={[0, 0, -0.02]}>
-          <planeGeometry args={[1.82, 2.3]} />
+          <planeGeometry args={[2.15, 2.72]} />
           <meshBasicMaterial color={tone} />
         </mesh>
-        {winner.photo ? <BlurredPhoto url={winner.photo} scale={[1.64, 2.1]} blur={0.042 * (1 - revealProgress)} /> : <group scale={3.8}><PortraitFallback tone={tone} /></group>}
+        {winner.photo ? <BlurredPhoto url={winner.photo} scale={[1.95, 2.5]} blur={0.042 * (1 - revealProgress)} /> : <group scale={4.5}><PortraitFallback tone={tone} /></group>}
         {revealProgress < 1 && (
-          <Text position={[0, 0, 0.035]} fontSize={0.68} color="#FFFFFF" anchorX="center" anchorY="middle" outlineWidth={0.025} outlineColor="#1C1B1B">
+          <Text position={[0, 0, 0.035]} fontSize={0.78} color="#FFFFFF" anchorX="center" anchorY="middle" outlineWidth={0.025} outlineColor="#1C1B1B">
             {Math.max(0, Math.ceil(3 * (1 - revealProgress)))}
           </Text>
         )}
-        <Text position={[0, -1.36, 0.035]} fontSize={0.17} color={tone} anchorX="center" anchorY="middle" outlineWidth={0.008} outlineColor="#FFFFFF">
+        <Text position={[0, -1.6, 0.035]} fontSize={0.19} color={tone} anchorX="center" anchorY="middle" outlineWidth={0.008} outlineColor="#FFFFFF">
           {`PARRAIN ${level}E ANNÉE`}
         </Text>
         {revealProgress >= 1 && (
-          <Text position={[0, -1.6, 0.035]} fontSize={0.16} color="#1C1B1B" anchorX="center" anchorY="middle" maxWidth={2.4} textAlign="center" outlineWidth={0.006} outlineColor="#FFFFFF">
+          <Text position={[0, -1.88, 0.035]} fontSize={0.18} color="#1C1B1B" anchorX="center" anchorY="middle" maxWidth={2.8} textAlign="center" outlineWidth={0.006} outlineColor="#FFFFFF">
             {`${winner.prenom} ${winner.nom}`.toUpperCase()}
           </Text>
         )}
@@ -166,8 +166,8 @@ function WinnerPortrait({ winner, tone, side, level, revealProgress }: { winner:
 function WinnerConnection() {
   return (
     <group>
-      <Line points={[[-1.36, 0, 1.68], [1.36, 0, 1.68]]} color="#171717" lineWidth={2.2} transparent opacity={0.94} />
-      <mesh position={[0, 0, 1.68]}>
+      <Line points={[[-1.0, 0, 1.85], [1.0, 0, 1.85]]} color="#171717" lineWidth={2.5} transparent opacity={0.94} />
+      <mesh position={[0, 0, 1.85]}>
         <sphereGeometry args={[0.09, 20, 20]} />
         <meshBasicMaterial color="#171717" />
       </mesh>

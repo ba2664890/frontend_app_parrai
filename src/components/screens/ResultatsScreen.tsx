@@ -78,10 +78,10 @@ function FamilyResultItem({ family }: { family: TirageResult }) {
     <div className="flex flex-col gap-6 rounded-3xl border border-outline-variant/30 bg-surface-container-lowest/80 p-5 md:p-8 shadow-xl backdrop-blur-sm">
       <header className="text-center">
         <span className="rounded-full bg-vert-teranga/10 px-4 py-1.5 font-label-md text-xs font-black uppercase tracking-widest text-vert-teranga">
-          Parrainage officiel · {family.filleul.filiereCode}
+          Parrainage · {family.filleul.filiereCode}
         </span>
         <h2 className="mt-3 font-headline text-[clamp(1.8rem,3.5vw,2.8rem)] font-black uppercase tracking-tight text-on-surface">
-          La famille de {nomComplet(family.filleul)}
+          {nomComplet(family.filleul)}
         </h2>
         <p className="mt-1 font-body text-body-sm text-on-surface-variant">
           Les deux parrains enregistrés par l’urne sont révélés ci-dessous.

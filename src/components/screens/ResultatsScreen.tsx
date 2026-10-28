@@ -157,6 +157,8 @@ export function ResultatsScreen() {
           filleul: val.filleul,
           parrain2: val.parrain2,
           parrain3: val.parrain3,
+          indices2: [val.parrain2.indice1, val.parrain2.indice2, val.parrain2.indice3].filter(Boolean) as string[],
+          indices3: [val.parrain3.indice1, val.parrain3.indice2, val.parrain3.indice3].filter(Boolean) as string[],
         });
       }
     });

@@ -3,10 +3,7 @@ import { AmsenLogo } from "@/components/shared/AmsenLogo";
 import type { ViewId } from "@/lib/types";
 
 const NAV: { id: ViewId; label: string }[] = [
-  { id: "accueil", label: "Accueil" },
-  { id: "tirage", label: "Tirage" },
   { id: "resultats", label: "Résultats" },
-  { id: "pilote", label: "Pilote" },
 ];
 
 export function StageHeader() {

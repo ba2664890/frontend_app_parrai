@@ -40,7 +40,7 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  view: "accueil",
+  view: "resultats",
   setView: (v) => set({ view: v }),
 
   evenementId: null,
